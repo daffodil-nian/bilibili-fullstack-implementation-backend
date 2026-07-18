@@ -1,0 +1,9 @@
+snow:
+  worker-id: 1
+spring:
+  profiles:
+    active: local
+  datasource:
+    url: ${spring.db.url}
+    username: ${spring.db.username}
+    password: ${spring.db.password}
