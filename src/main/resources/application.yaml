@@ -3,7 +3,16 @@ snow:
 spring:
   profiles:
     active: local
+  data:
+    redis:
+      host: ${redis.host}
+      port: ${redis.port}
+      database: ${redis.database}
+      password: ${redis.password}
+
   datasource:
     url: ${spring.db.url}
     username: ${spring.db.username}
     password: ${spring.db.password}
+  jwt:
+    secret: ${bili-chat.jwt.secret}

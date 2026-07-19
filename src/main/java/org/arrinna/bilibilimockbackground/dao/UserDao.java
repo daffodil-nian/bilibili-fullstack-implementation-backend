@@ -1,5 +1,69 @@
 package org.arrinna.bilibilimockbackground.dao;
 
-public class UserDao {
+import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.arrinna.bilibilimockbackground.domain.entity.user.User;
+import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
+import org.arrinna.bilibilimockbackground.mapper.UserMapper;
+import org.springframework.stereotype.Service;
 
+@Service
+public class UserDao extends ServiceImpl<UserMapper, User> {
+
+
+    public UserInfoResp.UserBaseInfo showUserInfo(Long uid){
+        //根据uid查询用户信息，然后返回
+        User user=lambdaQuery()
+                .eq(User::getUId,uid)
+                .one();
+        //然后用上copy的一个函数
+        UserInfoResp.UserBaseInfo userBaseInfo= BeanUtil.copyProperties(user,UserInfoResp.UserBaseInfo.class);
+        userBaseInfo.setUID(uid);//
+        return userBaseInfo;
+    }
+
+
+    /**
+     * 根据用户账号密码来查询
+     * @param username
+     * @return
+     */
+    public Long findUserUIDByUsername(String username){
+        return lambdaQuery()
+                .eq(User::getUsername,username)
+                .one().getUId()
+                ;
+    }
+
+    /**
+     * 判断用户是否存在
+     * 如果存在这个用户就返回true
+     * @param username
+     * @return
+     */
+    public boolean isUserExist(String username){
+        return lambdaQuery()
+                .eq(User::getUsername,username)
+                .exists()
+                ;
+    }
+
+    /**
+     * 判断用户是否存在
+     * @param username
+     * @param password
+     * @return
+     */
+    public boolean isUserExist(String username,String password){
+        return lambdaQuery()
+                .eq(User::getUsername,username)
+                .eq(User::getPassword,password)
+                .exists()
+                ;
+    }
+
+    @Override
+    public boolean save(User entity) {
+        return super.save(entity);
+    }
 }

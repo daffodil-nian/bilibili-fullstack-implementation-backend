@@ -3,7 +3,8 @@ package org.arrinna.bilibilimockbackground.domain.entity.user;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import lombok.Builder;
 import lombok.Data;
 import com.baomidou.mybatisplus.annotation.IdType;
 
@@ -11,11 +12,13 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Builder
 @Data
-@TableName("user")
+@TableName(value = "user",autoResultMap = true)
 public class User implements Serializable {
     @TableId(type = IdType.AUTO)
-    private Long UID;//这个
+    @TableField(value = "u_id")
+    private Long uId;//这个
 
     private Long id;
 
@@ -33,7 +36,7 @@ public class User implements Serializable {
 
     private Long openId;       // 第三方登录openid
 
-    @TableField(typeHandler = Jackson3TypeHandler.class)
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private IpInfo ipInfo;     // IP信息（JSON类型）
 
     private Integer activeStatus; // 活跃状态 1=在线 2=离线

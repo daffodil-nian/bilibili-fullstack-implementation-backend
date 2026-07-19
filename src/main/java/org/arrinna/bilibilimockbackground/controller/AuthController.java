@@ -21,14 +21,19 @@ public class AuthController {
      * @return
      */
     @GetMapping("/login")
-    public Result<UserInfoResp> login(@RequestBody LoginDto loginDto){
+    public Result<UserInfoResp.UserBaseInfo> login(@RequestBody LoginDto loginDto){
         //然后直接调用service层，在service层中进行逻辑处理
-        return Result.Success();
+        String username = loginDto.getUsername();
+        String password = loginDto.getPassword();
+
+        return Result.Success(authService.login(username,password));
     }
     @PostMapping("/register")
-    public Result<User> register(@RequestBody RegisterDto registerDto){
-
-        return Result.Success();
+    public Result<Boolean> register(@RequestBody RegisterDto registerDto){
+        String username = registerDto.getUsername();
+        String password = registerDto.getPassword();
+        String checkPassword = registerDto.getCheckPassword();
+        return Result.Success(authService.register(username,password,checkPassword));
     }
     @PostMapping("/logout")
     public Result<Boolean> logout(){
