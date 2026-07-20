@@ -6,6 +6,7 @@ import org.arrinna.bilibilimockbackground.common.algorithm.SnowAlgorithm;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.constant.RedisKey;
 import org.arrinna.bilibilimockbackground.common.constant.ValidationConstant;
+import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.*;
 import org.arrinna.bilibilimockbackground.dao.UserDao;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
@@ -46,11 +47,11 @@ public class AuthServiceImpl implements IAuthService {
     @Override
     public UserInfoResp.UserBaseInfo login(String username, String password){
         //1.检查账号和密码是否有效
-        AssertUtil.isFalse(username.isBlank(),"用户名不能为空");    // 校验账号不能为空
-        AssertUtil.isFalse(password.isBlank(),"密码不能为空");    // 校验密码不能为空
+        AssertUtil.isFalse(username.isBlank(), ErrorCodeEnum.ACCOUNT_EMPTY);    // 校验账号不能为空
+        AssertUtil.isFalse(password.isBlank(),ErrorCodeEnum.PASSWORD_EMPTY);    // 校验密码不能为空
 
         //2.查询数据库，检查用户是否存在，其中密码需要进行解密
-        AssertUtil.isTrue(userDao.isUserExist(username,PasswordUtil.encryptWithStaticSalt(password)),"用户名或密码错误");
+        AssertUtil.isTrue(userDao.isUserExist(username,PasswordUtil.encryptWithStaticSalt(password)),ErrorCodeEnum.PASSWORD_ERROR);
 
         System.out.println("用户名和密码校验成功,您即将登录成功~"); //验证成功，接下来继续往后面写吧~
         //3.找到该用户对应的UID,我们要调用userDao
@@ -94,17 +95,17 @@ public class AuthServiceImpl implements IAuthService {
     @Override
     public boolean register(String username, String password, String checkPassword){
         //1.检查账号和密码是否有效
-        AssertUtil.isFalse(username.isBlank(),"用户名不能为空");    // 校验账号不能为空
-        AssertUtil.isFalse(password.isBlank(),"密码不能为空");    // 校验密码不能为空
-        AssertUtil.isFalse(checkPassword.isBlank(),"确认密码不能为空"); // 校验确认密码不能为空
-        AssertUtil.isTrue(password.equals(checkPassword),"两次密码不一致"); // 校验两次输入的密码是否一致
+        AssertUtil.isFalse(username.isBlank(),ErrorCodeEnum.ACCOUNT_EMPTY);    // 校验账号不能为空
+        AssertUtil.isFalse(password.isBlank(),ErrorCodeEnum.PASSWORD_EMPTY);    // 校验密码不能为空
+        AssertUtil.isFalse(checkPassword.isBlank(),ErrorCodeEnum.CHECK_PWD_EMPTY); // 校验确认密码不能为空
+        AssertUtil.isTrue(password.equals(checkPassword),ErrorCodeEnum.PWD_NOT_SAME); // 校验两次输入的密码是否一致
 
         //2.检查账号和密码的长度规范，这里我们规定用户名长度在8-16位之间
-        AssertUtil.isTrue(username.length()>=8 && username.length()<=16,"账号长度在8-16位之间");
-        AssertUtil.isTrue(password.length()>=8 && password.length()<=16,"密码长度在8-16位之间");
+        AssertUtil.isTrue(username.length()>=8 && username.length()<=16,ErrorCodeEnum.ACCOUNT_LENGTH_ERROR);
+        AssertUtil.isTrue(password.length()>=8 && password.length()<=16,ErrorCodeEnum.PWD_LENGTH_ERROR);
 
         //3.检查密码的复杂程度
-        AssertUtil.isTrue(password.matches(ValidationConstant.PasswordRegex),"密码要包含大写字母小写字母等复杂符号");
+        AssertUtil.isTrue(password.matches(ValidationConstant.PasswordRegex),ErrorCodeEnum.PWD_COMPLEX_ERROR);
 
         //4.密码加盐，提高用户数据安全性
         String encryptedPassword = PasswordUtil.encryptWithStaticSalt(password);
@@ -119,7 +120,7 @@ public class AuthServiceImpl implements IAuthService {
 
         //7.接着判断用户是否注册了，如果注册了就不能够注册，这时需要我们调用dao层中的一个方法
 
-        AssertUtil.isFalse(userDao.isUserExist(username),"该账号已存在");
+        AssertUtil.isFalse(userDao.isUserExist(username),ErrorCodeEnum.ACCOUNT_ALREADY_EXIST);
 
         //8.最后就是注册，然后把注册成功的结果返回
         User user = User.builder()

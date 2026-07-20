@@ -20,7 +20,7 @@ public class AuthController {
      * @param loginDto
      * @return
      */
-    @GetMapping("/login")
+    @PostMapping ("/login")
     public Result<UserInfoResp.UserBaseInfo> login(@RequestBody LoginDto loginDto){
         //然后直接调用service层，在service层中进行逻辑处理
         String username = loginDto.getUsername();

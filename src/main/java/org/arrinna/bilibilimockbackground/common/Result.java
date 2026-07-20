@@ -22,13 +22,13 @@ public class Result <T>{
         result.setCode(200);
         return result;
     }
-    public static <T> Result<T> Error(String msg){
+    public static <T> Result<T> fail(String msg){
         Result<T> result=new Result<>();
         result.setCode(500);
         result.setMsg(msg);
         return result;
     }
-    public static <T> Result<T> Error(Integer code,String msg){
+    public static <T> Result<T> fail(Integer code,String msg){
         Result<T> result=new Result<>();
         result.setCode(code);
         result.setMsg(msg);
