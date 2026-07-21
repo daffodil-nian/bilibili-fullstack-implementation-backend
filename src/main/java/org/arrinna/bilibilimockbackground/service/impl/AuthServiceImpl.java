@@ -9,8 +9,13 @@ import org.arrinna.bilibilimockbackground.common.constant.ValidationConstant;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.*;
 import org.arrinna.bilibilimockbackground.dao.UserDao;
+import org.arrinna.bilibilimockbackground.dao.UserFollowDao;
+import org.arrinna.bilibilimockbackground.dao.UserWalletDao;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
+import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
+import org.arrinna.bilibilimockbackground.domain.entity.user.UserWallet;
 import org.arrinna.bilibilimockbackground.domain.enums.ActiveStatusEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.UserAccountStatusEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
@@ -36,6 +41,10 @@ public class AuthServiceImpl implements IAuthService {
 
     @Autowired
     private UserDao userDao;
+    @Autowired
+    private UserFollowDao userFollowDao;
+    @Autowired
+    private UserWalletDao userWalletDao;
 
 
     /**
@@ -75,10 +84,27 @@ public class AuthServiceImpl implements IAuthService {
         }
         //6.返回给前端，
         log.info("用户登录成功");
+
         //7.最后用一个变量存储这些值昂
 
-       UserInfoResp.UserBaseInfo userBaseInfo= userDao.showUserInfo(uid);
-       log.info("我表示理解{}",userBaseInfo);
+        UserInfoResp.UserBaseInfo userBaseInfo= userDao.showUserInfo(uid);
+        log.info("我表示理解{}",userBaseInfo);
+
+        //8.完善一下用户的关注情况和钱包信息,根据用户的UID获取就可以了，反正也是公开数据，等后续骨架搭建好后再完善
+
+        Long user_long_id= userDao.getUserIdByUID(uid);
+        //等后续再把关注列表完善一下，加上一点功能，有的UP主不让别人看他的关注列表，就跟抖音一样
+        userBaseInfo.setUserFollowInfo(userFollowDao.getFollowInfo(user_long_id));
+
+        //9.接着根据用户的u_id来获取用户的等级情况
+        // & 根据用户的id根据硬币情况
+        userBaseInfo.setUserLvInfo(userDao.getUserLevelInfoByUId(uid));
+        userBaseInfo.setUserWalletResp(userWalletDao.getUserWalletByULongId(user_long_id));
+
+        //10.接着把用户的等级情况完善一下一并返回给用户
+
+        //11.用户登录状态记得改
+        //userBaseInfo.setActiveStatus(ActiveStatusEnum.ONLINE.getStatus());
        System.out.println("syc"+userBaseInfo);
         return userBaseInfo;
     }
@@ -132,15 +158,28 @@ public class AuthServiceImpl implements IAuthService {
                 .birthDay(DefaultConstant.DEFAULT_BIRTH_DAY)
                 .activeStatus(ActiveStatusEnum.OFFLINE.getStatus()) //默认离线，除非登录了才是在线的
                 .status(UserAccountStatusEnum.NORMAL.getStatus())
+                .level(BiliLVEnum.LV0.getLevel())   //刚刚注册的用户的lv等级是0
+                .needAddExp(BiliLVEnum.LV0.getNeedAddExp())
                 .createTime(LocalDateTime.now())
                 .updateTime(LocalDateTime.now())
                 .build();
 
-        //9.还需要给每个注册的用户分配一个包包，待开发。。。
+        //9.需要给每个用户分配一个硬币包包
+        UserWallet userWallet= UserWallet
+                .builder()
+                .user_id(id) // 以后统一改成u_long_id，而不是UID
+                .bCoin(0)
+                .coin(0)
+                .build();
+        userWalletDao.save(userWallet);
 
-        //10.最后还有用户登录注册时所在的IP地址，然后要返回给前端，待开发。。。
+        //10.还需要给每个注册的用户分配一个包包，待开发。。。
 
-        //11.最后就是调用dao层中的方法，把注册结果返回回去
+
+
+        //11.最后还有用户登录注册时所在的IP地址，然后要返回给前端，待开发。。。
+
+        //12.最后就是调用dao层中的方法，把注册结果返回回去
         boolean isRegister=userDao.save(user);
         return isRegister;
     }

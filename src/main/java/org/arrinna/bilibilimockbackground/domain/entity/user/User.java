@@ -45,6 +45,11 @@ public class User implements Serializable {
 
     private Long itemId;       // 关联装扮/道具ID
 
+    private Integer level;      // 等级 0-6
+
+    private Integer needAddExp;        // 当前等级经验值
+//    private Integer totalExp;   // 累计总经验
+
     private LocalDateTime createTime; // 创建时间
 
     private LocalDateTime updateTime; // 更新时间

@@ -27,11 +27,11 @@ class AuthServiceImplTest {
 
     @Test
     void register() {
-        String username="写自己的账号";
+        String username="ceshizhanghao1";
         String password="Aa@12345678";
         String checkPassword="Aa@12345678";
-//      String sss = authService.register(username,password,checkPassword);
-//      System.out.println("只因你太美"+sss);
+      authService.register(username,password,checkPassword);
+      System.out.println("只因你太美");
     }
 
     @Test
