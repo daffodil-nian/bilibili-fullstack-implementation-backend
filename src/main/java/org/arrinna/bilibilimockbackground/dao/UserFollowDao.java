@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UserFollowDao extends ServiceImpl<UserFollowMapper, UserFollow> {
+//    public int getUserFollowCount(Long uid){
+//        //1.uid是用户的uid
+//        return lambdaQuery().eq(UserFollow::getUserId,uid).count().intValue();
+//    }
 
     public UserInfoResp.UserFollowResp getFollowInfo(Long uid){
         UserInfoResp.UserFollowResp userFollowResp=UserInfoResp.UserFollowResp
@@ -33,5 +37,12 @@ public class UserFollowDao extends ServiceImpl<UserFollowMapper, UserFollow> {
                 .intValue();
     }
 
+    public UserFollow getFollowByUidAndFollowId(Long uid,Long followId){
+     //这个要判断followId和uid是否是一个关注与被关注的关系
+        return lambdaQuery()
+                .eq(UserFollow::getUserId,uid)
+                .eq(UserFollow::getFollowId,followId)
+                .one();
+    }
 
 }

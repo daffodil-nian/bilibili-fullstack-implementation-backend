@@ -39,6 +39,8 @@ public class User implements Serializable {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private IpInfo ipInfo;     // IP信息（JSON类型）
 
+    private String signature;
+
     private Integer activeStatus; // 活跃状态 1=在线 2=离线
 
     private Integer status;    // 账号状态 1=正常 2=小黑屋 3=注销

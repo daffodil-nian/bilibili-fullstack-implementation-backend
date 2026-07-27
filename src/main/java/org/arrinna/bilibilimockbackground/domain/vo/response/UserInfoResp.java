@@ -56,6 +56,7 @@ public class UserInfoResp {
         private Integer activeStatus;
         private String avatar;
         private IpInfo ipInfo;
+        private String signature; // 用户签名
         private UserLvInfo userLvInfo;
         private UserFollowResp userFollowInfo;
         private UserWalletResp userWalletResp;

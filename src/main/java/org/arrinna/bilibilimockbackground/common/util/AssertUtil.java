@@ -1,5 +1,6 @@
 package org.arrinna.bilibilimockbackground.common.util;
 
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import org.arrinna.bilibilimockbackground.common.exception.BusinessException;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 
@@ -7,6 +8,19 @@ import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
  * 校验工具类
  */
 public class AssertUtil {
+
+
+    public static void isNotEmpty(Object obj, String errorMsg) {
+        if (ObjectUtils.isEmpty(obj)) {
+            throw new BusinessException(errorMsg);
+        }
+    }
+
+    public static void isNotEmpty(Object obj, ErrorCodeEnum error) {
+        if (ObjectUtils.isEmpty(obj)) {
+            throw new BusinessException(error);
+        }
+    }
 
     /**
      * 表达式为真为假，如表达式为空抛异常

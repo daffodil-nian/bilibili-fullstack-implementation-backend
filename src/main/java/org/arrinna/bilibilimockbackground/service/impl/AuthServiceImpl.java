@@ -154,6 +154,7 @@ public class AuthServiceImpl implements IAuthService {
                 .username(username)
                 .password(encryptedPassword)
                 .nickname(nickname)
+                .signature(DefaultConstant.DEFAULT_SIGNATURE)
                 .sex(SexEnum.PROTECTED_SEX.getStatus()) //默认是保密的性别
                 .birthDay(DefaultConstant.DEFAULT_BIRTH_DAY)
                 .activeStatus(ActiveStatusEnum.OFFLINE.getStatus()) //默认离线，除非登录了才是在线的

@@ -3,7 +3,6 @@ package org.arrinna.bilibilimockbackground.controller;
 import org.arrinna.bilibilimockbackground.common.Result;
 import org.arrinna.bilibilimockbackground.domain.dto.LoginDto;
 import org.arrinna.bilibilimockbackground.domain.dto.RegisterDto;
-import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
 import org.arrinna.bilibilimockbackground.service.IAuthService;
 import org.springframework.beans.factory.annotation.Autowired;

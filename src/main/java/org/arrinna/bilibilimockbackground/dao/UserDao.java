@@ -13,6 +13,44 @@ import org.springframework.stereotype.Service;
 public class UserDao extends ServiceImpl<UserMapper, User> {
 
 
+
+    public boolean updateNicknameById(Long id,String nickname){
+        return lambdaUpdate()
+                .eq(User::getId,id)
+                .set(nickname!=null,User::getNickname,nickname)
+                .update();
+    }
+    public boolean updateAvatarById(Long id,String avatar){
+        return lambdaUpdate()
+                .eq(User::getId,id)
+                .set(avatar!=null,User::getAvatar,avatar)
+                .update();
+    }
+    public boolean updateSignatureById(Long id,String signature){
+        return lambdaUpdate()
+                .eq(User::getId,id)
+                .set(signature!=null,User::getSignature,signature)
+                .update();
+    }
+    public boolean updateNicknameByUId(Long uid,String nickname){
+        return lambdaUpdate()
+                .eq(User::getUId,uid)
+                .set(nickname!=null,User::getNickname,nickname)
+                .update();
+    }
+    public boolean updateAvatarByUId(Long uid,String avatar){
+        return lambdaUpdate()
+                .eq(User::getUId,uid)
+                .set(avatar!=null,User::getAvatar,avatar)
+                .update();
+    }
+    public boolean updateSignatureByUId(Long uid,String signature){
+        return lambdaUpdate()
+                .eq(User::getUId,uid)
+                .set(signature!=null,User::getSignature,signature)
+                .update();
+    }
+
     public UserLvInfo getUserLevelInfoByUId(Long uid){
         User user= lambdaQuery()
                 .eq(User::getUId,uid).one();

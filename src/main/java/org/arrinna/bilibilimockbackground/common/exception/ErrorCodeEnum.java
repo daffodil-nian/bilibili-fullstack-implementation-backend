@@ -20,6 +20,14 @@ public enum ErrorCodeEnum {
     PWD_COMPLEX_ERROR(10009, "密码要包含大写字母小写字母等复杂符号"),
     ACCOUNT_ALREADY_EXIST(10010, "该账号已存在"),
 
+    // ========= 关注模块 ===========
+    FOLLOW_USER_ID_EMPTY(10011, "关注用户ID不能为空"),
+    FOLLOW_ACTION_EMPTY(10012, "操作类型不能为空"),
+    CANNOT_FOLLOW_SELF(10013, "不能关注你自己哦"),
+    FOLLOW_USER_NOT_EXIST(10014, "关注的目标用户不存在"),
+    FOLLOW_ACTION_ERROR(10015, "关注操作类型不合法"),
+
+
     // 通用业务失败
     BUSINESS_FAIL(40000, "业务校验失败"),
     // 系统异常

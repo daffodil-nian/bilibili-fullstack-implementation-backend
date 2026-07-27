@@ -62,3 +62,28 @@ CREATE TABLE IF NOT EXISTS `user_follow`
 #     dynamic_type TINYINT NOT NULL DEFAULT 1 COMMENT '动态类型 1=文字 2=图片',
 #
 # );
+
+# 专栏
+CREATE TABLE `article` (
+                           `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '专栏ID (即 cv 号)',
+                           `user_id` bigint(20) NOT NULL COMMENT '作者用户ID',
+                           `title` varchar(255) NOT NULL COMMENT '专栏标题',
+                           `cover` varchar(512) DEFAULT '' COMMENT '封面图 URL',
+                           `summary` varchar(512) DEFAULT '' COMMENT '专栏摘要/简介',
+                           `content` longtext NOT NULL COMMENT '专栏正文 (HTML/Markdown)',
+
+    -- 外键与关联 ID
+                           `category_id` int(11) NOT NULL COMMENT '分类ID (关联 article_category.id)',
+                           `collection_id` bigint(20) DEFAULT '0' COMMENT '所属文集ID (关联 article_collection.id)',
+
+    -- 状态与隐私权限
+                           `status` tinyint(4) DEFAULT '1' COMMENT '发布状态: 0-草稿, 1-已发布, 2-审核中, 3-已下架',
+                           `visibility` tinyint(4) DEFAULT '1' COMMENT '可见权限: 1-公开, 2-私密(仅自己可见)',
+
+                           `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                           `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                           PRIMARY KEY (`id`),
+                           KEY `idx_user_id` (`user_id`),
+                           KEY `idx_category_id` (`category_id`),
+                           KEY `idx_collection_id` (`collection_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专栏主表';
