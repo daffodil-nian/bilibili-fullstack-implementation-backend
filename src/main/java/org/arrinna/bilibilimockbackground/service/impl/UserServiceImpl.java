@@ -59,6 +59,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public Boolean updateAvatar(Long uid, String avatar){
 
+        //1.接下来就要完善上传头像的代码了
         return userDao.updateAvatarByUId(uid,avatar);
     }
 

@@ -16,3 +16,9 @@ spring:
     password: ${spring.db.password}
   jwt:
     secret: ${bili-chat.jwt.secret}
+  oss:
+    endpoint: ${OSS.endpoint}
+    accessKeyId: ${OSS.accessKeyId}
+    accessKeySecret: ${OSS.accessKeySecret}
+    bucketName: ${OSS.bucket}
+    domain: ${OSS.region}
