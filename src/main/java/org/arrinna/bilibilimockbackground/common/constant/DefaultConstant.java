@@ -15,6 +15,7 @@ public interface DefaultConstant {
     String NICKNAME_EMPTY_MSG="用户昵称不能为空";
 
     Integer DEFAULT_FOLLOW_STATUS = 2;
+    Long MAX_AVATAR_SIZE=2*1024*1024L;
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;

@@ -22,6 +22,17 @@ public enum SexEnum {
         cache = Arrays.stream(SexEnum.values())
                 .collect(Collectors.toMap(SexEnum::getStatus, Function.identity()));
     }
+    public static boolean isValid(Integer val){
+
+        if(val==null) return true;
+
+        for (SexEnum e:SexEnum.values()){
+            if(e.getStatus()==val){
+                return true;
+            }
+        }
+        return false;
+    }
     public static SexEnum of(Integer status) {
         return cache.get(status);
     }

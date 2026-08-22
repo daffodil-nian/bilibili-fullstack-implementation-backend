@@ -5,9 +5,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserLvInfo;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
 import org.arrinna.bilibilimockbackground.mapper.UserMapper;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
 
 @Service
 public class UserDao extends ServiceImpl<UserMapper, User> {
@@ -48,6 +51,22 @@ public class UserDao extends ServiceImpl<UserMapper, User> {
         return lambdaUpdate()
                 .eq(User::getUId,uid)
                 .set(signature!=null,User::getSignature,signature)
+                .update();
+    }
+
+    public boolean updateBirthDayByUId(Long uid, Date birthday){
+        return lambdaUpdate()
+                .eq(User::getUId,uid)
+                .set(birthday!=null,User::getBirthDay,birthday)
+                .update();
+    }
+
+    // 0 性别保密， 1 男 2 女
+    public boolean updateSexByUId(Long uid,Integer sex){
+        //TODO
+        return lambdaUpdate()
+                .eq(User::getUId,uid)
+                .set(sex!=null,User::getSex,sex)
                 .update();
     }
 

@@ -27,9 +27,16 @@ public enum ErrorCodeEnum {
     FOLLOW_USER_NOT_EXIST(10014, "关注的目标用户不存在"),
     FOLLOW_ACTION_ERROR(10015, "关注操作类型不合法"),
 
+    // ========= 用户模块 ===========
+    SEX_EMPTY(10016, "性别不能为空"),
+    BIRTHDAY_EMPTY(10017, "生日不能为空"),
+    AVATAR_EMPTY(10018, "头像不能为空"),
+    AVATAR_SIZE_ERROR(10019, "头像大小不能超过2M"),
+    AVATAR_TYPE_ERROR(10020, "头像类型不支持"),
 
     // 通用业务失败
     BUSINESS_FAIL(40000, "业务校验失败"),
+    PARAM_ERROR(40001, "请求参数非法"),
     // 系统异常
     SYSTEM_ERROR(50000, "服务器异常");
 

@@ -1,6 +1,9 @@
 package org.arrinna.bilibilimockbackground.service;
 
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Date;
 
 public interface IUserService {
 
@@ -8,7 +11,13 @@ public interface IUserService {
 
     Boolean updateNickname(Long uid, String nickname);
 
-    Boolean updateAvatar(Long uid, String avatar);
+//    Boolean updateAvatar(Long uid, String avatar);
+
+    Boolean updateAvatar(Long uid, MultipartFile avatar);
+
+    Boolean updateBirthDay(Long uid, Date birthday);
+
+    Boolean updateUserSex(Long uid, Integer sex);
 
     Boolean followUser(Long uid, UserFollowReq req);
 }

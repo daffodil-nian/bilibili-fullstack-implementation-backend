@@ -1,16 +1,25 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
 import org.arrinna.bilibilimockbackground.dao.UserDao;
 import org.arrinna.bilibilimockbackground.dao.UserFollowDao;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
+import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.UserRuleEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Author Arrinna
@@ -18,6 +27,7 @@ import org.springframework.stereotype.Service;
  * 用户登录注册
  */
 @Service
+@Slf4j
 public class UserServiceImpl implements IUserService {
 
 
@@ -57,12 +67,44 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Boolean updateAvatar(Long uid, String avatar){
-
+    public Boolean updateAvatar(Long uid, MultipartFile avatar){
         //1.接下来就要完善上传头像的代码了
-        return userDao.updateAvatarByUId(uid,avatar);
+
+        AssertUtil.isFalse(avatar.isEmpty(),ErrorCodeEnum.AVATAR_EMPTY);
+        //2.要获取头像的大小，首先看看文件后缀是否符合要求，如果不符合要求也不行
+        final ArrayList<String> suffixList = List.of("jpg", "png", "jpeg").stream().map(String::toLowerCase).collect(Collectors.toCollection(ArrayList::new));
+
+        AssertUtil.isFalse(avatar.getSize()>DefaultConstant.MAX_AVATAR_SIZE,ErrorCodeEnum.AVATAR_SIZE_ERROR);
+
+        //3.判断后缀
+        String PicType=avatar.getContentType();
+        log.info("图片类型是:{}",PicType);
+        String suffix=PicType.split("/")[1];
+        log.info("图片后缀是:{}",suffix);
+        AssertUtil.isFalse(!suffixList.contains(suffix),ErrorCodeEnum.AVATAR_SIZE_ERROR);
+        //如果没有符合的就说明图片类型不支持
+
+
+        return null;
     }
 
+    @Override
+    public Boolean updateBirthDay(Long uid, Date birthday){
+         AssertUtil.isFalse(birthday==null,ErrorCodeEnum.BIRTHDAY_EMPTY);
+         //不会存在拿不到ID的情况，因为没有登录根本进不去。。
+        return userDao.updateBirthDayByUId(uid,birthday);
+    }
+
+
+    @Override
+    public Boolean updateUserSex(Long uid, Integer sex){
+
+            //就说明传入的数据不正确
+            //如果expression满足就触发下面的条件
+        AssertUtil.isFalse(sex!=null &&(!SexEnum.isValid(sex)),ErrorCodeEnum.PARAM_ERROR);
+
+        return userDao.updateSexByUId(uid,sex);
+    }
     @Override
     public Boolean followUser(Long uid, UserFollowReq req){
         Long followUid=req.getFollowId();
