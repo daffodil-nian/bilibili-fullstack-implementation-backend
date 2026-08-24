@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `user_follow`
 # );
 
 # 专栏
-CREATE TABLE `article` (
+CREATE TABLE IF NOT EXISTS `article` (
                            `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '专栏ID (即 cv 号)',
                            `user_id` bigint(20) NOT NULL COMMENT '作者用户ID',
                            `title` varchar(255) NOT NULL COMMENT '专栏标题',
@@ -87,3 +87,9 @@ CREATE TABLE `article` (
                            KEY `idx_category_id` (`category_id`),
                            KEY `idx_collection_id` (`collection_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专栏主表';
+
+
+# CREATE TABLE IF NOT EXISTS `bili_picture` (
+#     `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '图片ID'
+#
+# );

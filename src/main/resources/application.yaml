@@ -22,3 +22,11 @@ spring:
     accessKeySecret: ${OSS.accessKeySecret}
     bucketName: ${OSS.bucket}
     domain: ${OSS.region}
+cos:
+  client:
+    secret-id: ${COS.secretId}
+    secret-key: ${COS.secretKey}
+    region: ${COS.region}
+    bucket: ${COS.bucket}
+    host: ${COS.host}
+#    bucket-name: ${COS.}

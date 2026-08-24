@@ -33,6 +33,7 @@ public enum ErrorCodeEnum {
     AVATAR_EMPTY(10018, "头像不能为空"),
     AVATAR_SIZE_ERROR(10019, "头像大小不能超过2M"),
     AVATAR_TYPE_ERROR(10020, "头像类型不支持"),
+    UPLOAD_AVATAR_ERROR(10021, "上传头像失败，请稍后再试哦~"),
 
     // 通用业务失败
     BUSINESS_FAIL(40000, "业务校验失败"),

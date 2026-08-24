@@ -1,8 +1,10 @@
 package org.arrinna.bilibilimockbackground.controller;
 
+import jakarta.annotation.Resource;
 import org.arrinna.bilibilimockbackground.common.Result;
 import org.arrinna.bilibilimockbackground.common.exception.BusinessException;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
+import org.arrinna.bilibilimockbackground.manager.CosManager;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,8 @@ public class UserController {
 
     @Autowired
     private IUserService userService;
+    @Resource
+    private CosManager cosManager;
     /**
      * 用户修改签名
      */
@@ -63,9 +67,8 @@ public class UserController {
     }
 
     @PostMapping("/update/avatar")
-    public Result<Boolean> updateAvatar(@RequestAttribute("uid") Long uid,
+    public Result<String> updateAvatar(@RequestAttribute("uid") Long uid,
                                         @RequestParam("file") MultipartFile file){
-        //1.首先传入到service层中，然后判断
 
         return Result.Success(userService.updateAvatar(uid,file));
     }

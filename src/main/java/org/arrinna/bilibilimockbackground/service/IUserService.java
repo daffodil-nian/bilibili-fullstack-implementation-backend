@@ -13,7 +13,7 @@ public interface IUserService {
 
 //    Boolean updateAvatar(Long uid, String avatar);
 
-    Boolean updateAvatar(Long uid, MultipartFile avatar);
+    String updateAvatar(Long uid, MultipartFile avatar);
 
     Boolean updateBirthDay(Long uid, Date birthday);
 

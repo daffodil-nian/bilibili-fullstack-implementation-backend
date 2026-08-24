@@ -1,6 +1,8 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.arrinna.bilibilimockbackground.common.constant.COSFilePrefix;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
@@ -10,12 +12,14 @@ import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
 import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.UserRuleEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
+import org.arrinna.bilibilimockbackground.manager.CosManager;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,9 +39,12 @@ public class UserServiceImpl implements IUserService {
      * 没想好在哪里写拦截器部分
      */
 
+    @Value("${cos.client.host}")
+    private String host;
     @Autowired
     private UserDao userDao;
-
+    @Resource
+    private CosManager cosManager;
     @Autowired
     private UserFollowDao userFollowDao;
     @Override
@@ -67,7 +74,7 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Boolean updateAvatar(Long uid, MultipartFile avatar){
+    public String updateAvatar(Long uid, MultipartFile avatar){
         //1.接下来就要完善上传头像的代码了
 
         AssertUtil.isFalse(avatar.isEmpty(),ErrorCodeEnum.AVATAR_EMPTY);
@@ -85,7 +92,28 @@ public class UserServiceImpl implements IUserService {
         //如果没有符合的就说明图片类型不支持
 
 
-        return null;
+        //4.接下来就通过拼接生成url,先上传到COS中再存储到数据库中
+
+        String picture_name= avatar.getOriginalFilename();
+        String filepath=String.format(COSFilePrefix.USER_AVATAR_PREFIX,uid,picture_name);
+        log.info("可爱可爱的你"+picture_name);
+        File file=null;
+
+        try{
+            file=File.createTempFile(filepath,null);
+            avatar.transferTo(file);
+            cosManager.putObject(filepath,file);
+            log.info("上传成功"+host+filepath);
+            String url=host+filepath;
+            //并且要把值写入到数据库中
+            boolean result=userDao.updateAvatarByUId(uid,url);
+            AssertUtil.isFalse(result==false,ErrorCodeEnum.UPLOAD_AVATAR_ERROR);
+            return url;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        //5.最后返回结果
+
     }
 
     @Override
