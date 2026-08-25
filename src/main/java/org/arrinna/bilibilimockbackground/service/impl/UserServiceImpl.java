@@ -106,7 +106,7 @@ public class UserServiceImpl implements IUserService {
             log.info("上传成功"+host+filepath);
             String url=host+filepath;
             //并且要把值写入到数据库中
-            boolean result=userDao.updateAvatarByUId(uid,url);
+            boolean result=userDao.updateAvatarByUId(uid,filepath);
             AssertUtil.isFalse(result==false,ErrorCodeEnum.UPLOAD_AVATAR_ERROR);
             return url;
         } catch (Exception e) {

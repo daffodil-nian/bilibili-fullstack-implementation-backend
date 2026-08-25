@@ -1,6 +1,7 @@
 package org.arrinna.bilibilimockbackground.controller;
 
 import org.arrinna.bilibilimockbackground.common.Result;
+import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.domain.dto.LoginDto;
 import org.arrinna.bilibilimockbackground.domain.dto.RegisterDto;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
@@ -25,14 +26,14 @@ public class AuthController {
         String username = loginDto.getUsername();
         String password = loginDto.getPassword();
 
-        return Result.Success(authService.login(username,password));
+        return Result.Success(authService.login(username,password),DefaultConstant.REGISTER_FAIL_MSG);
     }
     @PostMapping("/register")
     public Result<Boolean> register(@RequestBody RegisterDto registerDto){
         String username = registerDto.getUsername();
         String password = registerDto.getPassword();
         String checkPassword = registerDto.getCheckPassword();
-        return Result.Success(authService.register(username,password,checkPassword));
+        return Result.Success(authService.register(username,password,checkPassword), DefaultConstant.REGISTER_SUCCESS_MSG);
     }
     @PostMapping("/logout")
     public Result<Boolean> logout(){

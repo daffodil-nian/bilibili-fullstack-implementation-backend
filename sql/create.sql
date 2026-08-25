@@ -93,3 +93,26 @@ CREATE TABLE IF NOT EXISTS `article` (
 #     `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '图片ID'
 #
 # );
+
+# 测试数据
+INSERT INTO `user` (`username`, `password`, `nickname`, `create_time`) VALUES
+                                                                           ('testuser01', 'Abc123@#01', '测试用户01', NOW()),
+                                                                           ('testuser02', 'Def456$%02', '测试用户02', NOW()),
+                                                                           ('testuser03', 'Ghi789^&03', '测试用户03', NOW()),
+                                                                           ('testuser04', 'Jkl012*!04', '测试用户04', NOW()),
+                                                                           ('testuser05', 'Mno345@#05', '测试用户05', NOW()),
+                                                                           ('testuser06', 'Pqr678$%06', '测试用户06', NOW()),
+                                                                           ('testuser07', 'Stu901^&07', '测试用户07', NOW()),
+                                                                           ('testuser08', 'Vwx234*!08', '测试用户08', NOW()),
+                                                                           ('testuser09', 'Yza567@#09', '测试用户09', NOW()),
+                                                                           ('testuser10', 'Bcd890$%10', '测试用户10', NOW()),
+                                                                           ('testuser11', 'Efg123^&11', '测试用户11', NOW()),
+                                                                           ('testuser12', 'Hij456*!12', '测试用户12', NOW()),
+                                                                           ('testuser13', 'Klm789@#13', '测试用户13', NOW()),
+                                                                           ('testuser14', 'Nop012$%14', '测试用户14', NOW()),
+                                                                           ('testuser15', 'Qrs345^&15', '测试用户15', NOW()),
+                                                                           ('testuser16', 'Tuv678*!16', '测试用户16', NOW()),
+                                                                           ('testuser17', 'Wxy901@#17', '测试用户17', NOW()),
+                                                                           ('testuser18', 'Zab234$%18', '测试用户18', NOW()),
+                                                                           ('testuser19', 'Cde567^&19', '测试用户19', NOW()),
+                                                                           ('testuser20', 'Fgh890*!20', '测试用户20', NOW());

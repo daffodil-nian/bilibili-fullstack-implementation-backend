@@ -15,6 +15,13 @@ public class Result <T>{
         result.setMsg("设置成功");
         return result;
     }
+    public static <T> Result<T> Success(T data,String msg){
+        Result<T> result=new Result<>();
+        result.setCode(200);
+        result.setData(data);
+        result.setMsg(msg);
+        return result;
+    }
     public static <T> Result<T> Success(){
         Result<T> result=new Result<>();
         result.setData(null);

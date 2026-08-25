@@ -16,6 +16,10 @@ public interface DefaultConstant {
 
     Integer DEFAULT_FOLLOW_STATUS = 2;
     Long MAX_AVATAR_SIZE=2*1024*1024L;
+
+    String REGISTER_SUCCESS_MSG="注册成功";
+
+    String REGISTER_FAIL_MSG="登录成功";
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;
