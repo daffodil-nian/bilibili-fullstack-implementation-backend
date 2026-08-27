@@ -3,6 +3,9 @@ package org.arrinna.bilibilimockbackground.domain.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @AllArgsConstructor
 @Getter
 /**
@@ -16,11 +19,16 @@ public enum SearchTypeEnum {
     LIVE(5,"直播","live"),
     ARTICLE(6,"文章","article");
 
-    private final Integer no;
+    private final int no;
 
     private final String text;
 
     private final String type;
 
+    private static final Map<Integer, SearchTypeEnum> cache = new HashMap<>();
+
+    public static SearchTypeEnum of(Integer status) {
+        return cache.get(status);
+    }
 
 }

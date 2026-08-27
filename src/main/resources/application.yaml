@@ -9,7 +9,6 @@ spring:
       port: ${redis.port}
       database: ${redis.database}
       password: ${redis.password}
-
   datasource:
     url: ${spring.db.url}
     username: ${spring.db.username}
@@ -22,6 +21,10 @@ spring:
     accessKeySecret: ${OSS.accessKeySecret}
     bucketName: ${OSS.bucket}
     domain: ${OSS.region}
+  elasticsearch:
+    password: ${ES.password}
+    username: ${ES.username}
+    host: ${ES.host}
 cos:
   client:
     secret-id: ${COS.secretId}
