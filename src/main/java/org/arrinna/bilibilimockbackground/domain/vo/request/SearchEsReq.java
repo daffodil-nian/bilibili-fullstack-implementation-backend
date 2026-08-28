@@ -10,5 +10,7 @@ public class SearchEsReq extends PageRequest implements Serializable {
 
     private String keyword;
 
-    private Integer sortCode;
+    private Integer searchType;
+
+    private Integer sortCode;//排序编码
 }

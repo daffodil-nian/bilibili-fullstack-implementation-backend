@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Slf4j
 public class SearchFacade {
 
+    //TODO 这个类等之后开发再完善吧
     public SearchVO searchAll(@RequestBody SearchDto searchRequest){
         //1.集合
         return null;

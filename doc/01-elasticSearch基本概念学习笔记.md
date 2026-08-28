@@ -549,7 +549,20 @@ POST _analyze
 
 > The `simple` analyzer breaks text into tokens at any non-letter character, such as numbers, spaces, hyphens and apostrophes, discards non-letter characters, and changes uppercase to lowercase.
 >
-> 
+
+
+
+#### ngram分词器
+
+http://elastic.co/docs/reference/text-analysis/analysis-ngram-tokenfilter
+
+这个是我临时加上的，详细可见上述官方文档。
+
+
+
+
+
+
 
 #### 空格分词器
 

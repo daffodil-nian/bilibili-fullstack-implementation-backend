@@ -22,4 +22,7 @@ public class UserVO implements Serializable {
     private String signature; // 用户签名
     private UserLvInfo userLvInfo;
     private UserInfoResp.UserFollowResp userFollowInfo;
+
+    //TODO 日后开发到视频模块再补充
+    private Integer videoCount = 0;
 }

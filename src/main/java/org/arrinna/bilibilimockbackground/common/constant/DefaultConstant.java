@@ -20,6 +20,8 @@ public interface DefaultConstant {
     String REGISTER_SUCCESS_MSG="注册成功";
 
     String REGISTER_FAIL_MSG="登录成功";
+
+    String SEARCH_SUCCESS_MSG = "搜索成功";
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;

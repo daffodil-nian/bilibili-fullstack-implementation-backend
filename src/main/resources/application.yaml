@@ -22,9 +22,10 @@ spring:
     bucketName: ${OSS.bucket}
     domain: ${OSS.region}
   elasticsearch:
-    password: ${ES.password}
+    uris: ${ES.host}
     username: ${ES.username}
-    host: ${ES.host}
+    password: ${ES.password}
+
 cos:
   client:
     secret-id: ${COS.secretId}

@@ -84,6 +84,60 @@ JsonpMapper jsonpMapper;                 (4)
 
 我们用ElasticsearchClient
 
+
+
+## 对象映射
+
+### 先搞懂两个核心最常用类型
+
+1. **`FieldType.Text`**：分词文本
+
+- 存入 ES 的时候会分词拆词。
+- ✅用于：昵称 nickname、视频标题 title、简介 signature，**需要全文搜索、关键词检索**。
+- ❌不能用来精确匹配、排序。
+
+1. **`FieldType.Keyword`**：完整原始字符串，**不分词**
+
+- 原样一整个字符串存，不会拆字。
+- ✅用于：头像 url、标签、状态值，做精确过滤、排序、聚合。
+- ❌不能做模糊关键词搜索。
+
+> 举例子： nickname = "罗小黑 Official"
+>
+> - Text：会拆成「罗、小、黑、official」，搜 “小黑” 能搜到这条。
+> - Keyword：完整字符串`"罗小黑Official"`，必须完整一模一样才能匹配。
+
+其他常用：
+
+- `Integer`：粉丝数、视频数量、B 站等级，数字
+- `Date`：发布时间
+- `Boolean`：是否公开
+
+### 重点讲 `FieldType.Auto`（默认行为，不写 type 就这个）
+
+> `FieldType.Auto`：**Java 代码不定义 mapping，交给 ES 动态推断**。
+
+### 会发生什么：
+
+你 DTO 上不写`@Field(type=xxx)`
+
+```
+@Field
+private String nickname;
+```
+
+或者干脆不写`@Field`注解。
+
+当你第一条数据保存进 ES：
+
+- Java String → ES 自动猜成 `text + keyword` 双字段
+- Java Integer → ES 自动映射 integer
+- Java boolean → boolean
+
+✅好处：省事，不用写一堆注解。 ❌坑点（**项目千万不要依赖 Auto，很容易翻车**）
+
+
+
 ## 核心概念
 
 ```java
@@ -306,6 +360,174 @@ SearchHits<Book> findByName(String text);
 
 
 
-## 实现搜索方法
+### 领域事件
 
-首先要准备好数据库表，然后给出es映射即可
+实际上，领域对象在英语中是一个完成后的状态，表示事件已经发生了。
+
+
+
+```java
+class AnAggregateRoot {
+@DomainEvents
+Collection<Object> domainEvents() {
+    // … return events you want to get published here
+}
+
+@AfterDomainEventPublication
+void callbackMethod() {
+   // … potentially clean up domain events list
+}
+}
+```
+举个简单例子
+
+#### 领域事件POJO
+
+```java
+/**
+ * 领域事件：用户已经注册完成（过去式，已经发生）
+ */
+public class UserRegisteredEvent {
+    private final Long userId;
+    private final String username;
+
+    public UserRegisteredEvent(Long userId, String username) {
+        this.userId = userId;
+        this.username = username;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+}
+```
+
+
+
+#### 聚合根User使用@DomainEvents
+
+```java
+import jakarta.persistence.*;
+import org.springframework.data.domain.AfterDomainEventPublication;
+import org.springframework.data.domain.DomainEvents;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+@Entity
+@Table(name = "t_user")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String username;
+    private String password;
+
+    // transient：内存临时存放待发布领域事件，不会持久化到数据库
+    @Transient
+    private List<Object> domainEvents = new ArrayList<>();
+
+    // ---------------- 领域业务方法：注册
+    public void register(String username, String password) {
+        // 领域内业务逻辑：设置自身状态
+        this.username = username;
+        this.password = password;
+
+        // ✅业务执行完成，产生【已经发生】的领域事件，加入内存列表
+        domainEvents.add(new UserRegisteredEvent(this.id, username));
+    }
+
+    // ---------------- Spring Data JPA 读取事件
+    @DomainEvents
+    public Collection<Object> domainEvents() {
+        // 返回待发布的事件集合给框架
+        return domainEvents;
+    }
+
+    // ---------------- 事件全部发布完毕之后回调
+    @AfterDomainEventPublication
+    public void clearEvents() {
+        // 清空，避免下次save重复发布旧事件！
+        domainEvents.clear();
+    }
+
+    // getter setter
+    public Long getId() { return id; }
+    public String getUsername() { return username; }
+}
+```
+
+简单来说领域事件就是一张记录发生过的事件的小纸条
+
+### CDI集合
+
+上下文与依赖注入
+
+```java
+class ElasticsearchTemplateProducer {
+
+  @Produces
+  @ApplicationScoped
+  public ElasticsearchOperations createElasticsearchTemplate() {
+    // ...
+  }
+}
+
+class ProductService {
+
+  private ProductRepository repository;
+  public Page<Product> findAvailableBookByName(String name, Pageable pageable) {
+    return repository.findByAvailableTrueAndNameStartingWith(name, pageable);
+  }
+  @Inject
+  public void setRepository(ProductRepository repository) {
+    this.repository = repository;
+  }
+}
+```
+
+这里Produces是想告诉CDI，别人需要这个类型的对象就调用这个方法用它返回结果
+
+@Application告诉CDI，这个对象要放入应用房间的上下文中。
+
+@Inject是依赖注入
+
+## Dao层命名方法
+
+
+
+| Keyword                                       | Sample                                     | Elasticsearch Query String                                   |
+| :-------------------------------------------- | :----------------------------------------- | :----------------------------------------------------------- |
+| `And`                                         | `findByNameAndPrice`                       | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "?", "fields" : [ "name" ] } }, { "query_string" : { "query" : "?", "fields" : [ "price" ] } } ] } }}` |
+| `Or`                                          | `findByNameOrPrice`                        | `{ "query" : { "bool" : { "should" : [ { "query_string" : { "query" : "?", "fields" : [ "name" ] } }, { "query_string" : { "query" : "?", "fields" : [ "price" ] } } ] } }}` |
+| `Is`                                          | `findByName`                               | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "?", "fields" : [ "name" ] } } ] } }}` |
+| `Not`                                         | `findByNameNot`                            | `{ "query" : { "bool" : { "must_not" : [ { "query_string" : { "query" : "?", "fields" : [ "name" ] } } ] } }}` |
+| `Between`                                     | `findByPriceBetween`                       | `{ "query" : { "bool" : { "must" : [ {"range" : {"price" : {"from" : ?, "to" : ?, "include_lower" : true, "include_upper" : true } } } ] } }}` |
+| `LessThan`                                    | `findByPriceLessThan`                      | `{ "query" : { "bool" : { "must" : [ {"range" : {"price" : {"from" : null, "to" : ?, "include_lower" : true, "include_upper" : false } } } ] } }}` |
+| `LessThanEqual`                               | `findByPriceLessThanEqual`                 | `{ "query" : { "bool" : { "must" : [ {"range" : {"price" : {"from" : null, "to" : ?, "include_lower" : true, "include_upper" : true } } } ] } }}` |
+| `GreaterThan`                                 | `findByPriceGreaterThan`                   | `{ "query" : { "bool" : { "must" : [ {"range" : {"price" : {"from" : ?, "to" : null, "include_lower" : false, "include_upper" : true } } } ] } }}` |
+| `GreaterThanEqual`                            | `findByPriceGreaterThanEqual`              | `{ "query" : { "bool" : { "must" : [ {"range" : {"price" : {"from" : ?, "to" : null, "include_lower" : true, "include_upper" : true } } } ] } }}` |
+| `Before`                                      | `findByPriceBefore`                        | `{ "query" : { "bool" : { "must" : [ {"range" : {"price" : {"from" : null, "to" : ?, "include_lower" : true, "include_upper" : true } } } ] } }}` |
+| `After`                                       | `findByPriceAfter`                         | `{ "query" : { "bool" : { "must" : [ {"range" : {"price" : {"from" : ?, "to" : null, "include_lower" : true, "include_upper" : true } } } ] } }}` |
+| `Like`                                        | `findByNameLike`                           | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "?*", "fields" : [ "name" ] }, "analyze_wildcard": true } ] } }}` |
+| `StartingWith`                                | `findByNameStartingWith`                   | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "?*", "fields" : [ "name" ] }, "analyze_wildcard": true } ] } }}` |
+| `EndingWith`                                  | `findByNameEndingWith`                     | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "*?", "fields" : [ "name" ] }, "analyze_wildcard": true } ] } }}` |
+| `Contains/Containing`                         | `findByNameContaining`                     | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "*?*", "fields" : [ "name" ] }, "analyze_wildcard": true } ] } }}` |
+| `In` (when annotated as FieldType.Keyword)    | `findByNameIn(Collection<String>names)`    | `{ "query" : { "bool" : { "must" : [ {"bool" : {"must" : [ {"terms" : {"name" : ["?","?"]}} ] } } ] } }}` |
+| `In`                                          | `findByNameIn(Collection<String>names)`    | `{ "query": {"bool": {"must": [{"query_string":{"query": "\"?\" \"?\"", "fields": ["name"]}}]}}}` |
+| `NotIn` (when annotated as FieldType.Keyword) | `findByNameNotIn(Collection<String>names)` | `{ "query" : { "bool" : { "must" : [ {"bool" : {"must_not" : [ {"terms" : {"name" : ["?","?"]}} ] } } ] } }}` |
+| `NotIn`                                       | `findByNameNotIn(Collection<String>names)` | `{"query": {"bool": {"must": [{"query_string": {"query": "NOT(\"?\" \"?\")", "fields": ["name"]}}]}}}` |
+| `True`                                        | `findByAvailableTrue`                      | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "true", "fields" : [ "available" ] } } ] } }}` |
+| `False`                                       | `findByAvailableFalse`                     | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "false", "fields" : [ "available" ] } } ] } }}` |
+| `OrderBy`                                     | `findByAvailableTrueOrderByNameDesc`       | `{ "query" : { "bool" : { "must" : [ { "query_string" : { "query" : "true", "fields" : [ "available" ] } } ] } }, "sort":[{"name":{"order":"desc"}}] }` |
+| `Exists`                                      | `findByNameExists`                         | `{"query":{"bool":{"must":[{"exists":{"field":"name"}}]}}}`  |
+| `IsNull`                                      | `findByNameIsNull`                         | `{"query":{"bool":{"must_not":[{"exists":{"field":"name"}}]}}}` |
+| `IsNotNull`                                   | `findByNameIsNotNull`                      | `{"query":{"bool":{"must":[{"exists":{"field":"name"}}]}}}`  |
+| `IsEmpty`                                     | `findByNameIsEmpty`                        | `{"query":{"bool":{"must":[{"bool":{"must":[{"exists":{"field":"name"}}],"must_not":[{"wildcard":{"name":{"wildcard":"*"}}}]}}]}}}` |
+| `IsNotEmpty`                                  | `findByNameIsNotEmpty`                     | `{"query":{"bool":{"must":[{"wildcard":{"name":{"wildcard":"*"}}}]}}}` |

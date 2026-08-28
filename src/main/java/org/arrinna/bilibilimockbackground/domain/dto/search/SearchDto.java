@@ -6,7 +6,7 @@ import org.arrinna.bilibilimockbackground.common.PageRequest;
 import java.io.Serializable;
 
 @Data
-public class SearchDto<T> extends PageRequest implements Serializable {
+public class SearchDto extends PageRequest implements Serializable {
     /**
      * 搜索关键词
      */
@@ -14,7 +14,7 @@ public class SearchDto<T> extends PageRequest implements Serializable {
     /**
      * 类型,比如用户类型，比如lv类型
      */
-    private T searchType;//枚举类型哦
+    private String searchType;//枚举类型哦
 
     private Integer sortCode;
 
