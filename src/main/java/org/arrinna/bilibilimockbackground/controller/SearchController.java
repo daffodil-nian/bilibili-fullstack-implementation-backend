@@ -23,6 +23,6 @@ public class SearchController {
 
     @PostMapping("/all")
     public Result<SearchVO> searchUser(@RequestBody SearchEsReq req) {
-        return Result.Success(searchService.searchUser(req), SEARCH_SUCCESS_MSG);
+        return Result.Success(searchService.search(req), SEARCH_SUCCESS_MSG);
     }
 }

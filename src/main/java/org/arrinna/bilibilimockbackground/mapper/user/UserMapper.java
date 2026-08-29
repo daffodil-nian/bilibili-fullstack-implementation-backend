@@ -1,4 +1,4 @@
-package org.arrinna.bilibilimockbackground.mapper;
+package org.arrinna.bilibilimockbackground.mapper.user;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;

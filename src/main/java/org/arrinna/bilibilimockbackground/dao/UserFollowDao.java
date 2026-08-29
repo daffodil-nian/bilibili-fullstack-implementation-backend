@@ -3,7 +3,7 @@ package org.arrinna.bilibilimockbackground.dao;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
-import org.arrinna.bilibilimockbackground.mapper.UserFollowMapper;
+import org.arrinna.bilibilimockbackground.mapper.user.UserFollowMapper;
 import org.springframework.stereotype.Service;
 
 @Service

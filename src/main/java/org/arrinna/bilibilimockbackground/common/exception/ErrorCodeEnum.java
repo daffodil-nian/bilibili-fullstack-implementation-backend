@@ -35,6 +35,13 @@ public enum ErrorCodeEnum {
     AVATAR_TYPE_ERROR(10020, "头像类型不支持"),
     UPLOAD_AVATAR_ERROR(10021, "上传头像失败，请稍后再试哦~"),
 
+    // ========== 专栏模块 ==========
+    ARTICLE_TITLE_EMPTY(11022, "专栏标题不能为空"),
+    ARTICLE_CONTENT_EMPTY(11023, "专栏内容不能为空"),
+    ARTICLE_COVER_EMPTY(11024, "专栏封面不能为空"),
+    ARTICLE_SUMMARY_EMPTY(11025, "专栏摘要不能为空"),
+
+
     // 通用业务失败
     BUSINESS_FAIL(40000, "业务校验失败"),
     PARAM_ERROR(40001, "请求参数非法"),

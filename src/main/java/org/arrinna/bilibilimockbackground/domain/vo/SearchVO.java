@@ -10,4 +10,5 @@ import java.util.List;
 @Data
 public class SearchVO extends PageRequest implements Serializable {
     private List<UserVO> userList;
+    private List<ArticleSearchVO> articleList;
 }

@@ -1,6 +1,7 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserLvInfo;
+import org.arrinna.bilibilimockbackground.domain.enums.ArticleSortEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.SearchTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.UserSortEnum;
@@ -9,8 +10,9 @@ import org.arrinna.bilibilimockbackground.domain.vo.SearchVO;
 import org.arrinna.bilibilimockbackground.domain.vo.UserVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.SearchEsReq;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
-import org.arrinna.bilibilimockbackground.esdao.UserEsDao;
-import org.arrinna.bilibilimockbackground.esdao.UserEsSearch;
+import org.arrinna.bilibilimockbackground.esdao.article.ColumnEsDao;
+import org.arrinna.bilibilimockbackground.esdao.user.UserEsDao;
+import org.arrinna.bilibilimockbackground.esdao.user.UserEsSearch;
 import org.arrinna.bilibilimockbackground.service.ISearchService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,9 +35,11 @@ public class SearchServiceImpl implements ISearchService {
     private UserEsDao userEsDao;
     @Resource
     private UserEsSearch userEsSearch;
+    @Resource
+    private ColumnEsDao columnEsDao;
 
     @Override
-    public SearchVO searchUser(SearchEsReq req){
+    public SearchVO search(SearchEsReq req){
 
         SearchTypeEnum searchTypeEnum=SearchTypeEnum.of(req.getSearchType());
 
@@ -68,7 +72,8 @@ public class SearchServiceImpl implements ISearchService {
             }
             case ARTICLE -> {
                 //todo 查看文章
-                return null;
+                return doSearchArticle(req.getKeyword(), req.getSortCode()
+                        ,req.getCurrentNum(), req.getPageSize());
             }
         }
 
@@ -131,5 +136,17 @@ public class SearchServiceImpl implements ISearchService {
         vo.setCurrentNum(currentNum);
         vo.setPageSize(pageSize);
        return vo;
+    }
+
+    private SearchVO doSearchArticle(String keyword,Integer sortType
+            ,long currentNum,long pageSize){
+        //1.首先是看看排序
+        ArticleSortEnum sortEnum = ArticleSortEnum.of(sortType);
+
+        //2.获取是以什么样子的顺序排的顺序之后开始实现代码
+
+        String sort_field=sortEnum.getColumn();
+
+        return null;
     }
 }

@@ -4,5 +4,7 @@ import org.arrinna.bilibilimockbackground.domain.vo.SearchVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.SearchEsReq;
 
 public interface ISearchService {
-    SearchVO searchUser(SearchEsReq req);
+//    SearchVO searchUser(SearchEsReq req);
+
+    SearchVO search(SearchEsReq req);
 }

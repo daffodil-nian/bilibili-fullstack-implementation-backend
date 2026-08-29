@@ -5,9 +5,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserLvInfo;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
-import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
-import org.arrinna.bilibilimockbackground.mapper.UserMapper;
+import org.arrinna.bilibilimockbackground.mapper.user.UserMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;

@@ -5,9 +5,9 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.esdoc.UserEsDoc;
-import org.arrinna.bilibilimockbackground.esdao.UserEsDao;
+import org.arrinna.bilibilimockbackground.esdao.user.UserEsDao;
 import org.arrinna.bilibilimockbackground.job.once.FullSyncUserToEs;
-import org.arrinna.bilibilimockbackground.mapper.UserMapper;
+import org.arrinna.bilibilimockbackground.mapper.user.UserMapper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
