@@ -54,7 +54,7 @@ public class UserEsSearch {
 
     }
 
-    private List<String> splitUniqueChars(String keyword) {
+    public static List<String> splitUniqueChars(String keyword) {
         Set<String> set = new LinkedHashSet<>();
         for (int i = 0; i < keyword.length(); i++) {
             char c = keyword.charAt(i);

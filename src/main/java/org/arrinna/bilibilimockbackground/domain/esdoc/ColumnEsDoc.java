@@ -10,9 +10,11 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Builder
 @Data
+@Setting(settingPath = "es/bili-column-settings.json")
 @Document(indexName = "bili_column")
 public class ColumnEsDoc {
     @Id

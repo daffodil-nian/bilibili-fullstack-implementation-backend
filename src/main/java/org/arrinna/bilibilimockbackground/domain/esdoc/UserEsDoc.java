@@ -9,7 +9,7 @@ import org.springframework.data.elasticsearch.annotations.Setting;
 import lombok.Data;
 
 @Data
-@Setting(settingPath = "es/bili-user-settings.json")
+@Setting(settingPath = "es/bili-column-settings.json")
 @Document(indexName = "bili_user")
 public class UserEsDoc {
     @Id
