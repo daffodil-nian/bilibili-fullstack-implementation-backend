@@ -1,22 +1,28 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import jakarta.annotation.Resource;
+import org.arrinna.bilibilimockbackground.common.constant.RedisKey;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
+import org.arrinna.bilibilimockbackground.common.util.RedisUtils;
 import org.arrinna.bilibilimockbackground.domain.dto.article.ArticleListQuery;
 import org.arrinna.bilibilimockbackground.domain.dto.article.ArticlePublishDto;
 import org.arrinna.bilibilimockbackground.domain.entity.articles.Article;
 import org.arrinna.bilibilimockbackground.domain.entity.articles.ArticleTag;
 import org.arrinna.bilibilimockbackground.domain.entity.articles.ArticleTagRelation;
+import org.arrinna.bilibilimockbackground.domain.entity.articles.ArticleThumb;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.enums.ArticleStatusEnum;
 import org.arrinna.bilibilimockbackground.domain.esdoc.ColumnEsDoc;
+import org.arrinna.bilibilimockbackground.domain.vo.ArticleDetailVO;
 import org.arrinna.bilibilimockbackground.domain.vo.ArticleListVO;
 import org.arrinna.bilibilimockbackground.esdao.article.ColumnEsDao;
 import org.arrinna.bilibilimockbackground.mapper.article.ArticleMapper;
 import org.arrinna.bilibilimockbackground.mapper.article.ArticleTagMapper;
 import org.arrinna.bilibilimockbackground.mapper.article.ArticleTagRelationMapper;
+import org.arrinna.bilibilimockbackground.mapper.article.ArticleThumbMapper;
 import org.arrinna.bilibilimockbackground.mapper.user.UserMapper;
 import org.arrinna.bilibilimockbackground.service.IArticleService;
 import org.springframework.data.domain.Page;
@@ -26,6 +32,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,6 +47,8 @@ public class ArticleServiceImpl implements IArticleService {
     private ArticleTagMapper articleTagMapper;
     @Resource
     private ArticleTagRelationMapper articleTagRelationMapper;
+    @Resource
+    private ArticleThumbMapper articleThumbMapper;
     @Resource
     private UserMapper userMapper;
     @Resource
@@ -154,6 +163,102 @@ public class ArticleServiceImpl implements IArticleService {
     public Page<ArticleListVO> list(ArticleListQuery query){
 
         return null;
+    }
+
+    /**
+     * 查看文章（专栏）
+     * @param articleId
+     * @param viewerUid
+     * @return
+     */
+    @Override
+    public ArticleDetailVO detail(Long articleId, Long viewerUid){
+        Article article = articleMapper.selectById(articleId);
+        AssertUtil.isFalse(article==null,ErrorCodeEnum.ARTICLE_NOT_FOUND);
+
+        Integer status=article.getStatus();
+        //1.判断用户是否是该文章的作者
+        boolean isOwner =viewerUid!=null && viewerUid.equals(article.getUserId());
+        boolean publicOk = Objects.equals(status, ArticleStatusEnum.PUBLISHED.getCode());
+        AssertUtil.isFalse(!(publicOk || isOwner), ErrorCodeEnum.ARTICLE_FORBIDDEN);
+
+        //2.新增点击量
+        int clickCount = article.getClickCount()==null?0:article.getClickCount();
+        clickCount=incrArticleClick(articleId,clickCount);
+
+        //3.作者
+        User author = userMapper.selectById(article.getUserId());
+
+        //4.标签
+        List<String> tagNames = listTagNames(articleId);
+
+        //5.是否已经点赞了,查表判断是否已经点赞了
+        boolean hasLiked = false;
+        if (viewerUid!=null){
+            hasLiked= articleThumbMapper.selectCount(
+                    new LambdaQueryWrapper<ArticleThumb>()
+                            .eq(ArticleThumb::getArticleId, articleId)
+                            .eq(ArticleThumb::getUserId, viewerUid)
+            )>0?Boolean.TRUE:Boolean.FALSE;
+        }
+        //最后返回结果
+
+        return ArticleDetailVO
+                .builder()
+                .authorAvatar(author.getAvatar())
+                .articleId(articleId)
+                .authorNickname(author.getNickname())
+                .tagNames(tagNames)
+                .clickCount(clickCount)
+                .cover(article.getCover())
+                .content(article.getContent())
+                .hasLiked(hasLiked)
+                .userId(article.getUserId())
+                .title(article.getTitle())
+                .commentCount(article.getCommentCount())
+                .summary(article.getSummary())
+                .shareCount(article.getShareCount())
+                .likeCount(article.getLikeCount())
+                .collectionId(article.getCollectionId())
+                .categoryId(article.getCategoryId())
+                .publishTime(article.getPublishTime())
+                .status(article.getStatus())
+                .build();
+    }
+
+    private int incrArticleClick(Long articleId, int dbClickCount) {
+        //1.首先根据articleId获取key
+        String key = RedisUtils.getKey(RedisKey.ARTICLE_CLICK, articleId);
+        //2.判断key是否存在
+        if (RedisUtils.get(key) == null) {
+            RedisUtils.setIfAbsent(key, String.valueOf(dbClickCount));
+        }
+        //3.获取key的值，并自增
+        Long after = RedisUtils.increment(key);
+        return after == null ? dbClickCount : after.intValue();
+    }
+
+    private List<String> listTagNames(Long articleId){
+        List<ArticleTagRelation> articleTagRelation=articleTagRelationMapper.selectList(
+                new LambdaQueryWrapper<ArticleTagRelation>()
+                        .eq(ArticleTagRelation::getArticleId,articleId)
+        );
+        if(CollectionUtils.isEmpty(articleTagRelation)){
+            return Collections.emptyList();
+        }
+        //接下来
+        List<Long> tagIds = articleTagRelation
+                .stream()
+                .map(ArticleTagRelation::getTagId)
+                .distinct()
+                .toList();
+        //根据ID匹配name
+        List<ArticleTag> tags=articleTagMapper.selectBatchIds(tagIds);
+
+        List<String> nameList=tags.stream()
+                .map(ArticleTag::getName)
+                .toList();
+        return nameList;
     }
 
 }

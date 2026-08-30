@@ -5,16 +5,21 @@ import org.arrinna.bilibilimockbackground.domain.enums.ArticleSortEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.SearchTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.UserSortEnum;
+import org.arrinna.bilibilimockbackground.domain.esdoc.ColumnEsDoc;
 import org.arrinna.bilibilimockbackground.domain.esdoc.UserEsDoc;
+import org.arrinna.bilibilimockbackground.domain.vo.ArticleListVO;
+import org.arrinna.bilibilimockbackground.domain.vo.ArticleSearchVO;
 import org.arrinna.bilibilimockbackground.domain.vo.SearchVO;
 import org.arrinna.bilibilimockbackground.domain.vo.UserVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.SearchEsReq;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
 import org.arrinna.bilibilimockbackground.esdao.article.ColumnEsDao;
+import org.arrinna.bilibilimockbackground.esdao.article.ColumnEsSearch;
 import org.arrinna.bilibilimockbackground.esdao.user.UserEsDao;
 import org.arrinna.bilibilimockbackground.esdao.user.UserEsSearch;
 import org.arrinna.bilibilimockbackground.service.ISearchService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +42,8 @@ public class SearchServiceImpl implements ISearchService {
     private UserEsSearch userEsSearch;
     @Resource
     private ColumnEsDao columnEsDao;
+    @Resource
+    private ColumnEsSearch columnEsSearch;
 
     @Override
     public SearchVO search(SearchEsReq req){
@@ -91,11 +98,11 @@ public class SearchServiceImpl implements ISearchService {
 
        if(sortField!=null){
         //默认为粉丝的count
-        Sort.Direction direction="asc".equalsIgnoreCase(userSortEnum.getOrder())
-        ?Sort.Direction.ASC:
-        Sort.Direction.DESC;
-        sort=Sort.by(direction,userSortEnum.getColumn());
-
+//        Sort.Direction direction="asc".equalsIgnoreCase(userSortEnum.getOrder())
+//        ?Sort.Direction.ASC:
+//        Sort.Direction.DESC;
+//        sort=Sort.by(direction,userSortEnum.getColumn());
+           sort=sort(userSortEnum.getOrder(),userSortEnum.getColumn());
        }
 
        Pageable pageable = org.springframework.data.domain.PageRequest
@@ -146,8 +153,51 @@ public class SearchServiceImpl implements ISearchService {
         //2.获取是以什么样子的顺序排的顺序之后开始实现代码
 
         String sort_field=sortEnum.getColumn();
-
+        Sort sort=Sort.unsorted();
         //TODO 2026年8月29日晚上暂时写到这里，明天把剩下的部分完善！！！
-        return null;
+        if(sort_field!=null){
+            //然后排个顺序,根据枚举类型排序
+            sort=sort(sortEnum.getOrder(),sort_field);
+        }
+        //3.排完顺序之后，就先构造分页查询写法吧
+        Pageable pageable= PageRequest.of((int)currentNum,(int)pageSize,sort);
+        //4.然后开始构造查询条件，根据keyword查询，按照顺序排序返回查询结果
+        Page<ColumnEsDoc> columnEsDocs=columnEsSearch.searchColumnTitle(keyword,pageable);
+
+        //5.接下来转成列表类型
+        List<ArticleSearchVO> articleList=columnEsDocs.stream()
+                .map(columnEsDoc -> {
+                    ArticleSearchVO vo = new ArticleSearchVO();
+                    vo.setArticleId(columnEsDoc.getColumnId());
+                    vo.setCategory(columnEsDoc.getColumnId());
+                    vo.setTitle(columnEsDoc.getTitle());
+                    vo.setCover(columnEsDoc.getCover());
+                    vo.setSummary(columnEsDoc.getSummary());
+                    vo.setTag(columnEsDoc.getTag());
+                    vo.setUserId(columnEsDoc.getUserId());
+                    vo.setAuthorNickname(columnEsDoc.getAuthorNickname());
+                    vo.setLikeCount(columnEsDoc.getLikeCount());
+                    vo.setCommentCount(columnEsDoc.getCommentCount());
+                    vo.setClickCount(columnEsDoc.getClickCount());
+                    vo.setPublishTime(columnEsDoc.getPublishTime());
+                    return  vo;
+                })
+                .toList();
+
+        //然后new SearchVO
+        SearchVO vo = new SearchVO();
+        vo.setArticleList(articleList);
+        vo.setCurrentNum(currentNum);
+        vo.setPageSize(pageSize);
+        return vo;
+    }
+
+    private Sort sort(String order, String sort_field){
+        Sort sort=Sort.unsorted();
+        Sort.Direction direction="asc".equalsIgnoreCase(order)
+                ?Sort.Direction.ASC:
+                Sort.Direction.DESC;
+        sort=Sort.by(direction,sort_field);
+        return sort;
     }
 }

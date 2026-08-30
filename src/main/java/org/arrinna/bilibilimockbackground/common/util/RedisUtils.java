@@ -92,5 +92,25 @@ public class RedisUtils {
         }
         return true;
     }
+    public static Long increment(String key) {
+        try {
+            return stringRedisTemplate.opsForValue().increment(key);
+        } catch (Exception e) {
+            log.error("redis increment error", e);
+            return null;
+        }
+    }
+
+    public static Boolean setIfAbsent(String key, String value) {
+        try {
+            return Boolean.TRUE.equals(
+                    //内置的方法
+                    stringRedisTemplate.opsForValue().setIfAbsent(key, value)
+            );
+        } catch (Exception e) {
+            log.error("redis setIfAbsent error", e);
+            return false;
+        }
+    }
 
 }

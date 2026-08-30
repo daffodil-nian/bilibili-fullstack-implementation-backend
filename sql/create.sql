@@ -81,11 +81,12 @@ CREATE TABLE IF NOT EXISTS `articles` (
                            `visibility` tinyint(4) DEFAULT '1' COMMENT '可见权限: 1-公开, 2-私密(仅自己可见)',
 
                            `publish_time`  datetime              DEFAULT NULL COMMENT '首次发布时间，草稿为空',
-                           `like_count`    int          NOT NULL DEFAULT 0 COMMENT '点赞数',
-                           `comment_count` int          NOT NULL DEFAULT 0 COMMENT '评论数',
-                           `click_count`   int          NOT NULL DEFAULT 0 COMMENT '点击数',
-                           `share_count`   int          NOT NULL DEFAULT 0 COMMENT '转发数',
-
+                           `like_count`     int          NOT NULL DEFAULT 0 COMMENT '点赞数',
+                           `comment_count`  int          NOT NULL DEFAULT 0 COMMENT '评论数',
+                           `click_count`    int          NOT NULL DEFAULT 0 COMMENT '点击数',
+                           `share_count`    int          NOT NULL DEFAULT 0 COMMENT '转发数',
+                           `coin_count`     int          NOT NULL DEFAULT 0 COMMENT '投币总数',
+                           `favorite_count` int          NOT NULL DEFAULT 0 COMMENT '收藏数',
 
                            `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -115,7 +116,57 @@ CREATE TABLE IF NOT EXISTS `article_thumb` (
                                                       ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专栏点赞表';
 
+-- ========== 专栏投币（一人一篇一次，默认 1 币；余额在 user_wallet） ==========
+CREATE TABLE IF NOT EXISTS `article_coin` (
+                                             `id`          bigint   NOT NULL AUTO_INCREMENT,
+                                             `article_id`  bigint   NOT NULL COMMENT '专栏ID',
+                                             `user_id`     bigint   NOT NULL COMMENT '投币者 u_id',-- 可以关联到user_wallet
+                                             `coin_num`    int      NOT NULL DEFAULT 1 COMMENT '本次投币数，本项目固定 1',
+                                             `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                             PRIMARY KEY (`id`),
+                                             UNIQUE KEY `uk_article_user` (`article_id`, `user_id`), -- 防止用户重复给一篇文章投币
+                                             KEY `idx_user_id` (`user_id`),
+                                             CONSTRAINT `fk_acoin_article`
+                                                 FOREIGN KEY (`article_id`) REFERENCES `articles` (`article_id`)  -- 和articles表关联
+                                                     ON UPDATE CASCADE ON DELETE CASCADE,
+                                             CONSTRAINT `fk_acoin_user`
+                                                 FOREIGN KEY (`user_id`) REFERENCES `user` (`u_id`) -- 和user表关联
+                                                     ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专栏投币关系表';
 
+-- ========== 专栏收藏（读者收藏，区别于 articles.collection_id 作者文集） ==========
+CREATE TABLE IF NOT EXISTS `article_favorite` (
+                                                  `id`          bigint   NOT NULL AUTO_INCREMENT,
+                                                  `article_id`  bigint   NOT NULL COMMENT '专栏ID',
+                                                  `user_id`     bigint   NOT NULL COMMENT '收藏者 u_id',
+                                                  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                                  PRIMARY KEY (`id`),
+                                                  UNIQUE KEY `uk_article_user` (`article_id`, `user_id`),
+                                                  KEY `idx_user_id` (`user_id`),
+                                                  CONSTRAINT `fk_afav_article`
+                                                      FOREIGN KEY (`article_id`) REFERENCES `articles` (`article_id`)
+                                                          ON UPDATE CASCADE ON DELETE CASCADE,
+                                                  CONSTRAINT `fk_afav_user`
+                                                      FOREIGN KEY (`user_id`) REFERENCES `user` (`u_id`)
+                                                          ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专栏收藏表';
+
+-- ========== 专栏转发（可选记人；只要数字也可只改 share_count） ==========
+CREATE TABLE IF NOT EXISTS `article_share` (
+                                               `id`          bigint   NOT NULL AUTO_INCREMENT,
+                                               `article_id`  bigint   NOT NULL COMMENT '专栏ID',
+                                               `user_id`     bigint   NOT NULL COMMENT '转发者 u_id',
+                                               `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                               PRIMARY KEY (`id`),
+                                               KEY `idx_article_id` (`article_id`),
+                                               KEY `idx_user_id` (`user_id`),
+                                               CONSTRAINT `fk_ashare_article`
+                                                   FOREIGN KEY (`article_id`) REFERENCES `articles` (`article_id`)
+                                                       ON UPDATE CASCADE ON DELETE CASCADE,
+                                               CONSTRAINT `fk_ashare_user`
+                                                   FOREIGN KEY (`user_id`) REFERENCES `user` (`u_id`)
+                                                       ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专栏转发表';
 
 CREATE TABLE IF NOT EXISTS `article_tag`(
     `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '标签ID',
@@ -214,3 +265,11 @@ INSERT INTO `user` (`username`, `password`, `nickname`, `create_time`) VALUES
                                                                            ('testuser18', 'Zab234$%18', '测试用户18', NOW()),
                                                                            ('testuser19', 'Cde567^&19', '测试用户19', NOW()),
                                                                            ('testuser20', 'Fgh890*!20', '测试用户20', NOW());
+
+
+
+# ========= 已有库增量（库已建过 articles 时执行） ================
+# ALTER TABLE articles
+#     ADD COLUMN coin_count int NOT NULL DEFAULT 0 COMMENT '投币总数' AFTER share_count,
+#     ADD COLUMN favorite_count int NOT NULL DEFAULT 0 COMMENT '收藏数' AFTER coin_count;
+# 然后单独执行上面 CREATE TABLE article_coin / article_favorite / article_share

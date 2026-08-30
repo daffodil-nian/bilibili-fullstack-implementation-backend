@@ -40,6 +40,8 @@ public enum ErrorCodeEnum {
     ARTICLE_CONTENT_EMPTY(11023, "专栏内容不能为空"),
     ARTICLE_COVER_EMPTY(11024, "专栏封面不能为空"),
     ARTICLE_SUMMARY_EMPTY(11025, "专栏摘要不能为空"),
+    ARTICLE_NOT_FOUND(11026, "专栏不存在"),
+    ARTICLE_FORBIDDEN(11027, "专栏状态私密，您不可查看"),
 
 
     // 通用业务失败

@@ -1,4 +1,4 @@
-package org.arrinna.bilibilimockbackground.dao;
+package org.arrinna.bilibilimockbackground.dao.user;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;

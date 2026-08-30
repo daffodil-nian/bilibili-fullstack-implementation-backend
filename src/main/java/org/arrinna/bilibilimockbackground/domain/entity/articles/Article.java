@@ -31,6 +31,7 @@ public class Article implements Serializable {
     private Long collectionId;
 
     private Integer status;
+
     private Integer visibility;
 
     @TableField("publish_time")
@@ -47,6 +48,12 @@ public class Article implements Serializable {
 
     @TableField("share_count")
     private Integer shareCount;
+
+    @TableField("coin_count")
+    private Integer coinCount;
+
+    @TableField("favorite_count")
+    private Integer favoriteCount;
 
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;

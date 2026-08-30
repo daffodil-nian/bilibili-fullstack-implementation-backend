@@ -1,4 +1,4 @@
-package org.arrinna.bilibilimockbackground.dao;
+package org.arrinna.bilibilimockbackground.dao.user;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserWallet;
