@@ -159,8 +159,11 @@ public class SearchServiceImpl implements ISearchService {
             //然后排个顺序,根据枚举类型排序
             sort=sort(sortEnum.getOrder(),sort_field);
         }
-        //3.排完顺序之后，就先构造分页查询写法吧
-        Pageable pageable= PageRequest.of((int)currentNum,(int)pageSize,sort);
+        //3.排完顺序之后，就先构造分页查询写法吧（页码从 1 开始，ES/Spring 从 0 开始）
+        Pageable pageable = PageRequest.of(
+                (int) Math.max(currentNum - 1, 0),
+                (int) pageSize,
+                sort);
         //4.然后开始构造查询条件，根据keyword查询，按照顺序排序返回查询结果
         Page<ColumnEsDoc> columnEsDocs=columnEsSearch.searchColumnTitle(keyword,pageable);
 

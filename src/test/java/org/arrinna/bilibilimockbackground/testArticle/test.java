@@ -4,7 +4,10 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.domain.dto.article.ArticlePublishDto;
 import org.arrinna.bilibilimockbackground.domain.vo.ArticleDetailVO;
+import org.arrinna.bilibilimockbackground.domain.vo.SearchVO;
+import org.arrinna.bilibilimockbackground.domain.vo.request.SearchEsReq;
 import org.arrinna.bilibilimockbackground.service.IArticleService;
+import org.arrinna.bilibilimockbackground.service.ISearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -16,6 +19,8 @@ public class test {
 
     @Resource
     private IArticleService ArticleService;
+    @Resource
+    private ISearchService searchService;
 
 /**
  * 测试文章发布功能的方法
@@ -42,7 +47,14 @@ public class test {
 //        log.info("发布专栏成功，专栏ID为：{}", res);
 //        //然后查看信息
     ArticleDetailVO articleDetailVO = ArticleService.detail(2L,4L);
+    //返回查询结果
+    SearchEsReq searchEsReq = new SearchEsReq();
+    searchEsReq.setKeyword("阿嬷");
+    searchEsReq.setSearchType(6);
+    searchEsReq.setSortCode(0);
 
+    SearchVO searchVO = searchService.search(searchEsReq);
+    log.info("搜索结果：{}", searchVO);
     log.info("文章详情：{}", articleDetailVO);
     }
 }

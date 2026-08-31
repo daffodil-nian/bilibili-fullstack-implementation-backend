@@ -160,7 +160,10 @@ public class ArticleServiceImpl implements IArticleService {
     }
 
     //TODO等单元测试完上面的方法后就继续完善下面的写法！！！
+    //返回专栏列表
+    
     public Page<ArticleListVO> list(ArticleListQuery query){
+
 
         return null;
     }
