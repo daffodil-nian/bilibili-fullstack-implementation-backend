@@ -1,5 +1,6 @@
 package org.arrinna.bilibilimockbackground.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.Result;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.domain.dto.LoginDto;
@@ -9,6 +10,7 @@ import org.arrinna.bilibilimockbackground.service.IAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -25,8 +27,9 @@ public class AuthController {
         //然后直接调用service层，在service层中进行逻辑处理
         String username = loginDto.getUsername();
         String password = loginDto.getPassword();
-
-        return Result.Success(authService.login(username,password),DefaultConstant.REGISTER_FAIL_MSG);
+        UserInfoResp.UserBaseInfo res=authService.login(username,password);
+        log.info("古老的文明"+res.getAvatar());
+        return Result.Success(res,DefaultConstant.REGISTER_FAIL_MSG);
     }
     @PostMapping("/register")
     public Result<Boolean> register(@RequestBody RegisterDto registerDto){

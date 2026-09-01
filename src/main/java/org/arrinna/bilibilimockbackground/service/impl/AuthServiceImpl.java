@@ -20,6 +20,7 @@ import org.arrinna.bilibilimockbackground.domain.enums.UserAccountStatusEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
 import org.arrinna.bilibilimockbackground.service.IAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -44,7 +45,8 @@ public class AuthServiceImpl implements IAuthService {
     private UserFollowDao userFollowDao;
     @Autowired
     private UserWalletDao userWalletDao;
-
+    @Autowired
+    private CosUtil cosUtil;
 
     /**
      * 用户登录
@@ -87,6 +89,15 @@ public class AuthServiceImpl implements IAuthService {
         //7.最后用一个变量存储这些值昂
 
         UserInfoResp.UserBaseInfo userBaseInfo= userDao.showUserInfo(uid);
+
+        String avatar=userBaseInfo.getAvatar();
+        if(avatar==null||avatar.isBlank()){
+
+        }
+        else{
+            String avatar_url=cosUtil.toFullUrl(avatar);
+            userBaseInfo.setAvatar(avatar_url);
+        }
         log.info("我表示理解{}",userBaseInfo);
 
         //8.完善一下用户的关注情况和钱包信息,根据用户的UID获取就可以了，反正也是公开数据，等后续骨架搭建好后再完善

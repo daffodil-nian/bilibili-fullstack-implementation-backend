@@ -6,6 +6,7 @@ import jakarta.annotation.Resource;
 import org.arrinna.bilibilimockbackground.common.constant.RedisKey;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
+import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.common.util.RedisUtils;
 import org.arrinna.bilibilimockbackground.domain.dto.article.ArticleListQuery;
 import org.arrinna.bilibilimockbackground.domain.dto.article.ArticlePublishDto;
@@ -25,6 +26,7 @@ import org.arrinna.bilibilimockbackground.mapper.article.ArticleTagRelationMappe
 import org.arrinna.bilibilimockbackground.mapper.article.ArticleThumbMapper;
 import org.arrinna.bilibilimockbackground.mapper.user.UserMapper;
 import org.arrinna.bilibilimockbackground.service.IArticleService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +55,8 @@ public class ArticleServiceImpl implements IArticleService {
     private UserMapper userMapper;
     @Resource
     private ColumnEsDao columnEsDao;
+    @Autowired
+    private CosUtil cosUtil;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -156,7 +160,6 @@ public class ArticleServiceImpl implements IArticleService {
                 .commentCount(article.getCommentCount())
                 .build();
         columnEsDao.save(doc);
-
     }
 
     //TODO等单元测试完上面的方法后就继续完善下面的写法！！！
@@ -208,7 +211,7 @@ public class ArticleServiceImpl implements IArticleService {
 
         return ArticleDetailVO
                 .builder()
-                .authorAvatar(author.getAvatar())
+                .authorAvatar(cosUtil.toFullUrl(author.getAvatar()))
                 .articleId(articleId)
                 .authorNickname(author.getNickname())
                 .tagNames(tagNames)

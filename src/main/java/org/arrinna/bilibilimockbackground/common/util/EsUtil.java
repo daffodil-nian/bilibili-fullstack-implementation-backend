@@ -1,0 +1,38 @@
+package org.arrinna.bilibilimockbackground.common.util;
+
+import cn.hutool.core.bean.BeanUtil;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
+import org.arrinna.bilibilimockbackground.dao.user.UserDao;
+import org.arrinna.bilibilimockbackground.domain.entity.user.User;
+import org.arrinna.bilibilimockbackground.domain.esdoc.UserEsDoc;
+import org.arrinna.bilibilimockbackground.domain.vo.UserVO;
+import org.arrinna.bilibilimockbackground.esdao.user.UserEsDao;
+import org.arrinna.bilibilimockbackground.job.once.FullSyncUserToEs;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.stereotype.Component;
+
+@Component
+@Slf4j
+@RequiredArgsConstructor
+public class EsUtil {
+
+    private final ElasticsearchOperations elasticsearchOperations;
+
+    private final UserEsDao userEsDao;
+    private final UserDao userDao;
+
+    public void syncUserByUid(Long uid){
+        AssertUtil.isFalse(uid==null, ErrorCodeEnum.PARAM_ERROR);
+        User user= userDao.lambdaQuery()
+                .eq(User::getUId,uid)
+                .one();
+        UserEsDoc doc = FullSyncUserToEs.toDoc(user);
+
+        userEsDao.save(doc);
+        log.info("同步用户{}到es",uid);
+    }
+//    public
+}

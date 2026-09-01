@@ -49,8 +49,12 @@ public class test {
     ArticleDetailVO articleDetailVO = ArticleService.detail(2L,4L);
     //返回查询结果
     SearchEsReq searchEsReq = new SearchEsReq();
-    searchEsReq.setKeyword("阿嬷");
-    searchEsReq.setSearchType(6);
+//    searchEsReq.setKeyword("阿嬷");
+//    searchEsReq.setSearchType(6);
+//    searchEsReq.setSortCode(0);
+
+    searchEsReq.setKeyword("小");
+    searchEsReq.setSearchType(2);
     searchEsReq.setSortCode(0);
 
     SearchVO searchVO = searchService.search(searchEsReq);

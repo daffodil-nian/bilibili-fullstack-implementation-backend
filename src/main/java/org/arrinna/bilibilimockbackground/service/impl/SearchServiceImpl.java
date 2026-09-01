@@ -1,5 +1,6 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
+import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserLvInfo;
 import org.arrinna.bilibilimockbackground.domain.enums.ArticleSortEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
@@ -18,6 +19,7 @@ import org.arrinna.bilibilimockbackground.esdao.article.ColumnEsSearch;
 import org.arrinna.bilibilimockbackground.esdao.user.UserEsDao;
 import org.arrinna.bilibilimockbackground.esdao.user.UserEsSearch;
 import org.arrinna.bilibilimockbackground.service.ISearchService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -44,6 +46,8 @@ public class SearchServiceImpl implements ISearchService {
     private ColumnEsDao columnEsDao;
     @Resource
     private ColumnEsSearch columnEsSearch;
+    @Autowired
+    private CosUtil cosUtil;
 
     @Override
     public SearchVO search(SearchEsReq req){
@@ -128,7 +132,7 @@ public class SearchServiceImpl implements ISearchService {
                    UserVO userVO= UserVO.builder()
                             .UID(doc.getUserId())
                             .nickname(doc.getNickname())
-                            .avatar(doc.getAvatar())
+                            .avatar(cosUtil.toFullUrl(doc.getAvatar()))
                             .userLvInfo(userLvInfo)
                             .signature(doc.getSignature())
                             .userFollowInfo(userFollowResp)

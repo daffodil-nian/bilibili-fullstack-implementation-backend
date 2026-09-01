@@ -58,7 +58,13 @@ public class UserServiceImpl implements IUserService {
         }
         //2.判断异常
         AssertUtil.isFalse(signature.length()< UserRuleEnum.SIGNATURE.getMinLength()||signature.length()>UserRuleEnum.SIGNATURE.getMaxLength(),UserRuleEnum.SIGNATURE.getErrMsg());
+
+        //todo 修改了这个还要同步修改es中的数据！！！
+
         //3.然后就返回这个结果
+
+
+
         return userDao.updateSignatureByUId(uid,signature);
 
     }
@@ -100,7 +106,7 @@ public class UserServiceImpl implements IUserService {
         File file=null;
 
         try{
-            file=File.createTempFile(filepath,null);
+            file=File.createTempFile("avatar_", "");
             avatar.transferTo(file);
             cosManager.putObject(filepath,file);
             log.info("上传成功"+host+filepath);

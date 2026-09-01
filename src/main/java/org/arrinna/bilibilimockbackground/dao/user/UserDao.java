@@ -2,6 +2,7 @@ package org.arrinna.bilibilimockbackground.dao.user;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserLvInfo;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
@@ -15,8 +16,13 @@ import java.util.Date;
 public class UserDao extends ServiceImpl<UserMapper, User> {
 
 
+    private final CosUtil cosUtil;
 
-    public boolean updateNicknameById(Long id,String nickname){
+    public UserDao(CosUtil cosUtil) {
+        this.cosUtil = cosUtil;
+    }
+
+    public boolean updateNicknameById(Long id, String nickname){
         return lambdaUpdate()
                 .eq(User::getId,id)
                 .set(nickname!=null,User::getNickname,nickname)
@@ -118,6 +124,7 @@ public class UserDao extends ServiceImpl<UserMapper, User> {
         //然后用上copy的一个函数
         UserInfoResp.UserBaseInfo userBaseInfo= BeanUtil.copyProperties(user,UserInfoResp.UserBaseInfo.class);
         userBaseInfo.setUID(uid);//
+        userBaseInfo.setAvatar(cosUtil.toFullUrl(userBaseInfo.getAvatar()));
         return userBaseInfo;
     }
 

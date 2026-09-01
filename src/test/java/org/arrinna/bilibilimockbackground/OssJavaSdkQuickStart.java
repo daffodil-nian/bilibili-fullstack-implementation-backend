@@ -7,11 +7,10 @@ import com.aliyun.oss.common.comm.SignVersion;
 import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.OSSObjectSummary;
 import com.aliyun.oss.model.ObjectListing;
-import org.arrinna.bilibilimockbackground.common.util.OssUtil;
+import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.domain.enums.OssImageTypeEnum;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.*;
@@ -21,7 +20,7 @@ import java.util.Random;
 public class OssJavaSdkQuickStart {
 
     @Autowired
-    private static OssUtil ossUtil;
+    private static CosUtil ossUtil;
 
     /**
      * 测试结果出来了，没问题
