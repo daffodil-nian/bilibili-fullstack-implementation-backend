@@ -62,9 +62,6 @@ public class UserServiceImpl implements IUserService {
         //todo 修改了这个还要同步修改es中的数据！！！
 
         //3.然后就返回这个结果
-
-
-
         return userDao.updateSignatureByUId(uid,signature);
 
     }
@@ -77,6 +74,12 @@ public class UserServiceImpl implements IUserService {
         }
         AssertUtil.isFalse(nickname.length()< UserRuleEnum.NICKNAME.getMinLength()||nickname.length()>UserRuleEnum.NICKNAME.getMaxLength(),UserRuleEnum.NICKNAME.getErrMsg());
         return userDao.updateNicknameByUId(uid,nickname);
+    }
+
+    // todo 完善这个方法
+    public Boolean updateFollowInfo(){
+
+        return true;
     }
 
     @Override

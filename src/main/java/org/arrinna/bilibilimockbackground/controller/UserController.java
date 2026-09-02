@@ -1,6 +1,7 @@
 package org.arrinna.bilibilimockbackground.controller;
 
 import jakarta.annotation.Resource;
+import org.apache.ibatis.annotations.Param;
 import org.arrinna.bilibilimockbackground.common.Result;
 import org.arrinna.bilibilimockbackground.common.exception.BusinessException;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
@@ -118,9 +119,12 @@ public class UserController {
 
     /**
      * 用户关注其他用户，注意，不能关注自己
+     * todo
+     * UserEsDoc中的值要进行同步修改
      */
 
-    public Result<Boolean> followUser(){
+    public Result<Boolean> followUser(@RequestAttribute("uid") Long uid, @Param("value") Long targetUid){
+
         return null;
     }
 
