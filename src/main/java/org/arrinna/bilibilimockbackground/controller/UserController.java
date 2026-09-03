@@ -3,9 +3,12 @@ package org.arrinna.bilibilimockbackground.controller;
 import jakarta.annotation.Resource;
 import org.apache.ibatis.annotations.Param;
 import org.arrinna.bilibilimockbackground.common.Result;
+import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.BusinessException;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.EsUtil;
+import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
+import org.arrinna.bilibilimockbackground.domain.vo.request.UserPrivacyReq;
 import org.arrinna.bilibilimockbackground.manager.CosManager;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -118,15 +121,95 @@ public class UserController {
     }
 
     /**
-     * 用户关注其他用户，注意，不能关注自己
-     * todo
-     * UserEsDoc中的值要进行同步修改
+     * 用户关注/取消关注（toggle）
+     * Body: { "followId": 被关注者u_id }
      */
+    @PostMapping("/follow")
+    public Result<Boolean> followUser(@RequestAttribute("uid") Long uid,
+                                      @RequestBody UserFollowReq req) {
+        Long targetUid = req == null ? null : req.getFollowId();
+        if (targetUid == null) {
+            return Result.fail(ErrorCodeEnum.FOLLOW_USER_ID_EMPTY.getCode(),
+                    ErrorCodeEnum.FOLLOW_USER_ID_EMPTY.getMsg());
+        }
+        if (uid.equals(targetUid)) {
+            return Result.fail(DefaultConstant.FOLLOW_FAIL_MSG);
+        }
+        boolean res = userService.followUser(uid, req);
+        // 同步被关注者（粉丝数在其文档上）；toDoc 里 fansCount 仍可能是 0，后续再完善
+        if (res) {
+            esUtil.syncUserByUid(targetUid);
+        }
+        return Result.Success(res);
+    }
 
-    public Result<Boolean> followUser(@RequestAttribute("uid") Long uid, @Param("value") Long targetUid){
+
+    //实现用户点击个人首页能够看到用户信息
+    // 如果设为隐私是看不到的除了自己
+    public Result<Boolean> ShowUserInfo(@RequestAttribute("uid") Long uid, @Param("targetUid") Long targetUid) {
+        //1.首先是用户点击user的uid，根据uid渲染出信息
 
         return null;
     }
 
+    //4.如果用户不想让人看到自己的粉丝列表，可以选择设置，这样就看不到了
+    //5.反之，就可以查看关注数和粉丝数
+    @PutMapping("/update/privacy")
+    public Result<Boolean> updateUserPrivacySetting(@RequestAttribute("uid") Long uid,@RequestBody UserPrivacyReq req){
 
+        return Result.Success(userService.updateUserPrivacySetting(uid, req));
+
+    }
+
+    /** 粉丝列表 */
+    @GetMapping("/{targetUid}/fans")
+    public Result<?> fans(@RequestAttribute("uid") Long viewerUid,
+                          @PathVariable Long targetUid,
+                          @RequestParam(defaultValue = "1") int page,
+                          @RequestParam(defaultValue = "24") int size) {
+
+        return null;
+//        return Result.Success(userService.listFans(viewerUid, targetUid, page, size));
+    }
+
+    /** 关注列表 */
+    @GetMapping("/{targetUid}/fans")
+    public Result<?> follows(@RequestAttribute("uid") Long viewerUid,
+                          @PathVariable Long targetUid,
+                          @RequestParam(defaultValue = "1") int page,
+                          @RequestParam(defaultValue = "24") int size) {
+
+        return null;
+//        return Result.Success(userService.listFans(viewerUid, targetUid, page, size));
+    }
+//    /** 3. 个人主页 */
+//    @GetMapping("/{targetUid}/space")
+//    public Result<UserSpaceVO> getUserSpace(@RequestAttribute("uid") Long viewerUid,
+//                                            @PathVariable Long targetUid) {
+//        return Result.Success(userService.getUserInfo(viewerUid, targetUid));
+//    }
+//    /** 6. 查自己隐私（设置页） */
+//    @GetMapping("/privacy")
+//    public Result<UserPrivacyReq> getPrivacy(@RequestAttribute("uid") Long uid) {
+//        return Result.Success(userService.getMyPrivacy(uid));
+//    }
+
+
+
+//    /** 关注列表 */
+//    @GetMapping("/{targetUid}/follows")
+//    public Result<List<UserSimpleVO>> listFollows(@RequestAttribute("uid") Long viewerUid,
+//                                                  @PathVariable Long targetUid,
+//                                                  @RequestParam(defaultValue = "1") int page,
+//                                                  @RequestParam(defaultValue = "24") int size) {
+//        return Result.Success(userService.listFollows(viewerUid, targetUid, page, size));
+//    }
+//    /** 粉丝列表 */
+//    @GetMapping("/{targetUid}/fans")
+//    public Result<List<UserSimpleVO>> listFans(@RequestAttribute("uid") Long viewerUid,
+//                                               @PathVariable Long targetUid,
+//                                               @RequestParam(defaultValue = "1") int page,
+//                                               @RequestParam(defaultValue = "24") int size) {
+//        return Result.Success(userService.listFans(viewerUid, targetUid, page, size));
+//    }
 }

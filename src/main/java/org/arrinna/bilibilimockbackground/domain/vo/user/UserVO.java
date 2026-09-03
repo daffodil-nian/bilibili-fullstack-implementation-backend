@@ -1,4 +1,4 @@
-package org.arrinna.bilibilimockbackground.domain.vo;
+package org.arrinna.bilibilimockbackground.domain.vo.user;
 
 import lombok.Builder;
 import lombok.Data;

@@ -110,6 +110,11 @@ public class UserDao extends ServiceImpl<UserMapper, User> {
                 .eq(User::getUId,uid).one();
         return user.getId();
     }
+    public User getUserByUID(Long uid){
+        return lambdaQuery()
+                .eq(User::getUId,uid)
+                .one();
+    }
 
     /**
      * 根据uid查询用户信息

@@ -1,4 +1,4 @@
-package org.arrinna.bilibilimockbackground.domain.vo;
+package org.arrinna.bilibilimockbackground.domain.vo.user;
 
 import lombok.Data;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;

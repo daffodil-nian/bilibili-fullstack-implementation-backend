@@ -2,16 +2,13 @@ package org.arrinna.bilibilimockbackground.testArticle;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.arrinna.bilibilimockbackground.domain.dto.article.ArticlePublishDto;
-import org.arrinna.bilibilimockbackground.domain.vo.ArticleDetailVO;
+import org.arrinna.bilibilimockbackground.domain.vo.article.ArticleDetailVO;
 import org.arrinna.bilibilimockbackground.domain.vo.SearchVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.SearchEsReq;
 import org.arrinna.bilibilimockbackground.service.IArticleService;
 import org.arrinna.bilibilimockbackground.service.ISearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.util.List;
 
 @SpringBootTest
 @Slf4j

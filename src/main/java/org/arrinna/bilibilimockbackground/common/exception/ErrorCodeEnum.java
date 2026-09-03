@@ -12,6 +12,7 @@ public enum ErrorCodeEnum {
     ACCOUNT_EMPTY(10003, "用户名不能为空"),
     PASSWORD_EMPTY(10004, "密码不能为空"),
 
+
     // ========== 注册模块 ==========
     CHECK_PWD_EMPTY(10005, "确认密码不能为空"),
     PWD_NOT_SAME(10006, "两次密码输入不一致"),
@@ -34,6 +35,7 @@ public enum ErrorCodeEnum {
     AVATAR_SIZE_ERROR(10019, "头像大小不能超过2M"),
     AVATAR_TYPE_ERROR(10020, "头像类型不支持"),
     UPLOAD_AVATAR_ERROR(10021, "上传头像失败，请稍后再试哦~"),
+    UPINFO_ERROR(10022,"啥都木有"),
 
     // ========== 专栏模块 ==========
     ARTICLE_TITLE_EMPTY(11022, "专栏标题不能为空"),

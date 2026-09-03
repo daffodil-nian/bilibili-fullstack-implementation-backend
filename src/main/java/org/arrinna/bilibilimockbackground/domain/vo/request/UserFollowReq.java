@@ -10,5 +10,5 @@ import lombok.Data;
 @Data
 public class UserFollowReq {
     private Long followId;
-    private Integer status;//关注的状态
+
 }

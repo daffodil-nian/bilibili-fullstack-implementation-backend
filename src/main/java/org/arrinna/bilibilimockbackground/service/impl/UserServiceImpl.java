@@ -6,24 +6,38 @@ import org.arrinna.bilibilimockbackground.common.constant.COSFilePrefix;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
+import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
+import org.arrinna.bilibilimockbackground.dao.user.UserPrivacyDao;
+import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
+import org.arrinna.bilibilimockbackground.domain.entity.user.UserPrivacy;
 import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.UserRuleEnum;
+import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
+import org.arrinna.bilibilimockbackground.domain.vo.user.UserSpaceVO;
+import org.arrinna.bilibilimockbackground.domain.vo.user.UserVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
+import org.arrinna.bilibilimockbackground.domain.vo.request.UserPrivacyReq;
 import org.arrinna.bilibilimockbackground.manager.CosManager;
 import org.arrinna.bilibilimockbackground.service.IUserService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static org.arrinna.bilibilimockbackground.common.constant.DefaultConstant.FOLLOWING;
+import static org.arrinna.bilibilimockbackground.common.constant.DefaultConstant.LOG_OUT;
 
 /**
  * @Author Arrinna
@@ -47,6 +61,11 @@ public class UserServiceImpl implements IUserService {
     private CosManager cosManager;
     @Autowired
     private UserFollowDao userFollowDao;
+    @Resource
+    private UserPrivacyDao userPrivacyDao;
+    @Autowired
+    private CosUtil cosUtil;
+
     @Override
     public Boolean updateSignature(Long uid, String signature){
         //首先要判断是否为空，如果为空就必须返回，还有签名字数有限制，如果字数不够也是不可以更新
@@ -75,13 +94,6 @@ public class UserServiceImpl implements IUserService {
         AssertUtil.isFalse(nickname.length()< UserRuleEnum.NICKNAME.getMinLength()||nickname.length()>UserRuleEnum.NICKNAME.getMaxLength(),UserRuleEnum.NICKNAME.getErrMsg());
         return userDao.updateNicknameByUId(uid,nickname);
     }
-
-    // todo 完善这个方法
-    public Boolean updateFollowInfo(){
-
-        return true;
-    }
-
     @Override
     public String updateAvatar(Long uid, MultipartFile avatar){
         //1.接下来就要完善上传头像的代码了
@@ -145,21 +157,96 @@ public class UserServiceImpl implements IUserService {
     @Override
     public Boolean followUser(Long uid, UserFollowReq req){
         Long followUid=req.getFollowId();
-        Integer status=req.getStatus();
-
         //1.校验是否为空
         AssertUtil.isNotEmpty(followUid, ErrorCodeEnum.FOLLOW_USER_ID_EMPTY);
-        AssertUtil.isNotEmpty(status, ErrorCodeEnum.FOLLOW_ACTION_EMPTY);
 
-        // 2. 不能关注自己
-        AssertUtil.isFalse(uid.equals(followUid), ErrorCodeEnum.CANNOT_FOLLOW_SELF);
-
-        //3.然后就是先查看数据库中是否有follow用户的记录，用一个参数去接受用户关注的人数
-//       Integer userFollowCount=userFollowDao.getFollowCount(uid);
-
-       //4.接下来就是判断用户是否关注了这个用户，没有关注就记录没有关注，关注了就记录关注
-      UserFollow record= userFollowDao.getFollowByUidAndFollowId(uid,followUid);
-
-        return record!=null&&record.getStatus()!=DefaultConstant.DEFAULT_FOLLOW_STATUS;
+      //2.然后直接调用dao层的follow，直接能解决关注问题
+        return userFollowDao.Follow(uid,followUid);
     }
+    // todo 完善根据选项公开隐私的接口
+
+    @Override
+    public Boolean updateUserPrivacySetting(Long uid, UserPrivacyReq req){
+        //1.
+        AssertUtil.isFalse(uid==null||req==null,ErrorCodeEnum.PARAM_ERROR);
+        //2.以防数据库没有这条消息写一下
+        UserPrivacy privacy = userPrivacyDao.getById(uid); // 你自己封装：eq u_id
+        if (privacy == null) {
+            // 没有就建一条默认，再改
+            privacy = UserPrivacy.builder().uId(uid).build(); // 其它靠 DB 默认或你手动 set 默认
+            userPrivacyDao.save(privacy);
+            privacy = userPrivacyDao.getByUid(uid);
+        }
+        //3.
+        if(req.getShowFollowList()!=null){
+            privacy.setShowFollowList(req.getShowFollowList()==false?1:0);//true变false
+        }
+        if(req.getShowFansList()!=null){
+            privacy.setShowFansList(req.getShowFansList()==false?1:0);
+        }
+        privacy.setUpdateTime(LocalDateTime.now());
+
+        //4.接下来调用dao层
+        return userPrivacyDao.updateUserPrivacyByUId(uid,privacy);
+    }
+
+
+    public UserSpaceVO getUserInfo(Long viewerUId,Long targetUId){
+        AssertUtil.isFalse(viewerUId==null||targetUId==null,ErrorCodeEnum.PARAM_ERROR);
+        //1.查询用户信息,如果是注销状态
+//        UserInfoResp.UserBaseInfo userBaseInfo=userDao.showUserInfo(targetUId);
+        //2.然后看看用户状态是否注销或进小黑屋，如果是就看不到消息，但是要把情况汇报回去！
+
+        //。。。2是被关进小黑屋，3是注销
+        User user=userDao.getUserByUID(targetUId);
+        AssertUtil.isFalse(user.getStatus()==LOG_OUT,ErrorCodeEnum.UPINFO_ERROR);
+
+        boolean isSelf = viewerUId != null && viewerUId.equals(targetUId);
+        //如果是自己的号码就可以查看
+
+        UserPrivacy privacy = getOrInitPrivacy(targetUId);
+        //3.根据隐私设置，查询用户信息，先查以下信息
+        boolean showBirthday = isPublic(privacy.getShowBirthdayAndTag());
+        boolean showFollowList = isSelf || isPublic(privacy.getShowFollowList());
+        boolean showFansList = isSelf || isPublic(privacy.getShowFansList());
+
+        Boolean followed = false;
+        if (viewerUId != null && !isSelf) {
+            UserFollow rel = userFollowDao.getFollowByUidAndFollowId(viewerUId, targetUId);
+            followed = rel != null && Objects.equals(rel.getStatus(), FOLLOWING);
+        }
+
+        //注意，这里的avatar要变动！！！！
+        return UserSpaceVO
+                .builder()
+                .uid(viewerUId)
+                .nickname(user.getNickname())
+                .avatar(cosUtil.toFullUrl(user.getAvatar()))
+                .birthday(user.getBirthDay())
+                .level(user.getLevel())
+                .signature(user.getSignature())
+                .followCount(userFollowDao.getFollowCount(targetUId))
+                .fansCount(userFollowDao.getFansCount(targetUId))
+                .likeCount(0L)//这个暂时替代一下
+                .playCount(0L)
+                .build();
+    }
+
+    /**
+     * 查看某个用户的隐私情况
+     * @param uid
+     * @return
+     */
+    private UserPrivacy getOrInitPrivacy(Long uid) {
+        UserPrivacy p = userPrivacyDao.getByUid(uid);
+        if (p == null) {
+            userPrivacyDao.save(UserPrivacy.builder().uId(uid).build());
+            p = userPrivacyDao.getByUid(uid);
+        }
+        return p;
+    }
+    private boolean isPublic(Integer flag) {
+        return flag == null || Objects.equals(flag, 1);
+    }
+
 }

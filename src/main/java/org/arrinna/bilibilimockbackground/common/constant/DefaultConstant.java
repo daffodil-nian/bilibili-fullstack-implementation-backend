@@ -23,8 +23,17 @@ public interface DefaultConstant {
 
     String SEARCH_SUCCESS_MSG = "搜索成功";
 
+    String CANNOT_FIND_MSG = "未找到相关内容";
+
+    String FOLLOW_SUCCESS_MSG = "关注成功";
+    String UNFOLLOW_SUCCESS_MSG = "取关成功";
+    String FOLLOW_FAIL_MSG = "自己不能关注自己哦~";
+
     int FOLLOWING=1;//关注中
     int UNFOLLOWED=2;//取关
+
+    int ACCOUNT_FORBIDDEN=2;
+    int LOG_OUT = 3;
 
 //    int NICKNAME_MIN_LENGTH=3;
 //

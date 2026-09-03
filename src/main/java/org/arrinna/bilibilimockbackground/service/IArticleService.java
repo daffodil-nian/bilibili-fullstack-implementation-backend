@@ -1,7 +1,7 @@
 package org.arrinna.bilibilimockbackground.service;
 
 import org.arrinna.bilibilimockbackground.domain.dto.article.ArticlePublishDto;
-import org.arrinna.bilibilimockbackground.domain.vo.ArticleDetailVO;
+import org.arrinna.bilibilimockbackground.domain.vo.article.ArticleDetailVO;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface IArticleService {

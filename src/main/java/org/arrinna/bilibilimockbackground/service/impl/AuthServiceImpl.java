@@ -10,8 +10,10 @@ import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.*;
 import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
+import org.arrinna.bilibilimockbackground.dao.user.UserPrivacyDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserWalletDao;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
+import org.arrinna.bilibilimockbackground.domain.entity.user.UserPrivacy;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserWallet;
 import org.arrinna.bilibilimockbackground.domain.enums.ActiveStatusEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
@@ -38,7 +40,6 @@ public class AuthServiceImpl implements IAuthService {
     private SnowAlgorithm snowAlgorithm;
     @Autowired
     private JwtUtils jwtUtils;
-
     @Autowired
     private UserDao userDao;
     @Autowired
@@ -47,6 +48,8 @@ public class AuthServiceImpl implements IAuthService {
     private UserWalletDao userWalletDao;
     @Autowired
     private CosUtil cosUtil;
+    @Resource
+    private UserPrivacyDao userPrivacyDao;
 
     /**
      * 用户登录
@@ -98,13 +101,17 @@ public class AuthServiceImpl implements IAuthService {
             String avatar_url=cosUtil.toFullUrl(avatar);
             userBaseInfo.setAvatar(avatar_url);
         }
-        log.info("我表示理解{}",userBaseInfo);
+
 
         //8.完善一下用户的关注情况和钱包信息,根据用户的UID获取就可以了，反正也是公开数据，等后续骨架搭建好后再完善
 
         Long user_long_id= userDao.getUserIdByUID(uid);
         //等后续再把关注列表完善一下，加上一点功能，有的UP主不让别人看他的关注列表，就跟抖音一样
-        userBaseInfo.setUserFollowInfo(userFollowDao.getFollowInfo(user_long_id));
+
+
+        //todo 已经改了这个BUG，要传uid而不是user_long_id,
+        // 接下来要同步更新es数据库
+        userBaseInfo.setUserFollowInfo(userFollowDao.getFollowInfo(uid));
 
         //9.接着根据用户的u_id来获取用户的等级情况
         // & 根据用户的id根据硬币情况
@@ -116,6 +123,7 @@ public class AuthServiceImpl implements IAuthService {
         //11.用户登录状态记得改
         //userBaseInfo.setActiveStatus(ActiveStatusEnum.ONLINE.getStatus());
        System.out.println("syc"+userBaseInfo);
+        log.info("我表示理解{}",userBaseInfo);
         return userBaseInfo;
     }
 
@@ -190,8 +198,16 @@ public class AuthServiceImpl implements IAuthService {
 
         //11.最后还有用户登录注册时所在的IP地址，然后要返回给前端，待开发。。。
 
-        //12.最后就是调用dao层中的方法，把注册结果返回回去
+
+        //12.then 调用dao层中的方法，把注册结果返回回去
         boolean isRegister=userDao.save(user);
+
+        //13.注册完毕还要调用userPrivacyDao，给用户分配一个隐私设置
+        UserPrivacy userPrivacy=UserPrivacy
+                .builder()
+                .uId(user.getUId())
+                .build();
+
         return isRegister;
     }
 }

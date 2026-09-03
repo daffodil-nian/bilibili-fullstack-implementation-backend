@@ -12,8 +12,10 @@ public class test {
 
     @Test
     public void test(){
-        userFollowDao.Follow(1L,2l);
-
+//        userFollowDao.Follow(1L,6l);
+        //关注接口测试完毕
+        userFollowDao.Follow(6L,1l);
+        //关注接口测试完毕
     }
 
 }
