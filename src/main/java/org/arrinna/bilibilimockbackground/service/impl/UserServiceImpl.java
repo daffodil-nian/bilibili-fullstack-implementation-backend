@@ -1,5 +1,6 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.constant.COSFilePrefix;
@@ -15,25 +16,21 @@ import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserPrivacy;
 import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.UserRuleEnum;
-import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
+import org.arrinna.bilibilimockbackground.domain.vo.user.UserSimpleVO;
 import org.arrinna.bilibilimockbackground.domain.vo.user.UserSpaceVO;
-import org.arrinna.bilibilimockbackground.domain.vo.user.UserVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserPrivacyReq;
 import org.arrinna.bilibilimockbackground.manager.CosManager;
 import org.arrinna.bilibilimockbackground.service.IUserService;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+//import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.arrinna.bilibilimockbackground.common.constant.DefaultConstant.FOLLOWING;
@@ -190,8 +187,8 @@ public class UserServiceImpl implements IUserService {
         return userPrivacyDao.updateUserPrivacyByUId(uid,privacy);
     }
 
-
-    public UserSpaceVO getUserInfo(Long viewerUId,Long targetUId){
+    @Override
+    public UserSpaceVO getUserInfo(Long viewerUId, Long targetUId){
         AssertUtil.isFalse(viewerUId==null||targetUId==null,ErrorCodeEnum.PARAM_ERROR);
         //1.查询用户信息,如果是注销状态
 //        UserInfoResp.UserBaseInfo userBaseInfo=userDao.showUserInfo(targetUId);
@@ -219,7 +216,7 @@ public class UserServiceImpl implements IUserService {
         //注意，这里的avatar要变动！！！！
         return UserSpaceVO
                 .builder()
-                .uid(viewerUId)
+                .uid(targetUId)
                 .nickname(user.getNickname())
                 .avatar(cosUtil.toFullUrl(user.getAvatar()))
                 .birthday(user.getBirthDay())
@@ -229,9 +226,57 @@ public class UserServiceImpl implements IUserService {
                 .fansCount(userFollowDao.getFansCount(targetUId))
                 .likeCount(0L)//这个暂时替代一下
                 .playCount(0L)
+                .showFollowList(showFollowList)
+                .showFansList(showFansList)
                 .build();
     }
 
+    @Override
+    public List<UserSimpleVO> listFans(Long viewerId, Long targetUId, int page, int size){
+        //1.首先判断用户的viewerUId是否等于targetUId
+        checkFansListVisible(viewerId, targetUId);
+        //2.如果可以看就来拼接
+        Page<UserFollow> userFansList=userFollowDao.pageFans(targetUId,page,size);
+        List<UserSimpleVO> list=buildSimpleList(viewerId,userFansList,true);
+        return list;
+    }
+    @Override
+    public List<UserSimpleVO> listFollows(Long viewerId, Long targetUId, int page, int size) {
+        //1.
+        checkFollowListVisible(viewerId, targetUId);
+        //2.如果可以就来拼接
+        Page<UserFollow> userFollowList=userFollowDao.pageFollow(targetUId,page,size);
+        List<UserSimpleVO> list=buildSimpleList(viewerId,userFollowList,false);
+
+        return list;
+    }
+
+    @Override
+    public UserPrivacyReq getMyPrivacy(Long uid) {
+        AssertUtil.isFalse(uid==null,ErrorCodeEnum.USER_NOT_LOGIN);
+        UserPrivacy p = getOrInitPrivacy(uid);
+        UserPrivacyReq resp = new UserPrivacyReq();
+        resp.setShowFollowList(Objects.equals(p.getShowFollowList(), 1));
+        resp.setShowFansList(Objects.equals(p.getShowFansList(), 1));
+        resp.setShowBirthdayAndTag(Objects.equals(p.getShowBirthdayAndTag(), 1));
+        resp.setShowCollect(Objects.equals(p.getShowCollect(), 1));
+        resp.setShowBangumi(Objects.equals(p.getShowBangumi(), 1));
+        resp.setShowGame(Objects.equals(p.getShowGame(), 1));
+        resp.setShowChargeVideo(Objects.equals(p.getShowChargeVideo(), 1));
+        resp.setShowComic(Objects.equals(p.getShowComic(), 1));
+        resp.setShowSchoolInfo(Objects.equals(p.getShowSchoolInfo(), 1));
+        resp.setShowFansDecorate(Objects.equals(p.getShowFansDecorate(), 1));
+        resp.setShowCoinVideo(Objects.equals(p.getShowCoinVideo(), 1));
+        resp.setShowGame(Objects.equals(p.getShowGame(), 1));
+        resp.setShowLikeVideo(Objects.equals(p.getShowLikeVideo(), 1));
+        resp.setShowFansMedal(Objects.equals(p.getShowFansMedal(), 1));
+        resp.setShowClassVideo(Objects.equals(p.getShowClassVideo(), 1));
+        resp.setShowFollowList(Objects.equals(p.getShowFollowList(), 1));
+        resp.setShowFansList(Objects.equals(p.getShowFansList(), 1));
+        resp.setShowChargeVideo(Objects.equals(p.getShowChargeVideo(), 1));
+
+        return resp;
+    }
     /**
      * 查看某个用户的隐私情况
      * @param uid
@@ -247,6 +292,94 @@ public class UserServiceImpl implements IUserService {
     }
     private boolean isPublic(Integer flag) {
         return flag == null || Objects.equals(flag, 1);
+    }
+
+    private void checkFansListVisible(Long viewerId,Long targetUId){
+        //1.如果是自己就可以看
+        if(viewerId.equals(targetUId)){
+            return;
+        }
+        //2.如果不是自己，则判断隐私设置,有数据就获取，没数据就直接插入数据即可
+        UserPrivacy p = getOrInitPrivacy(targetUId);
+        AssertUtil.isTrue(isPublic(p.getShowFansList()),ErrorCodeEnum.FANS_LIST_VISIBLE_ERROR);
+
+
+    }
+    /**
+     * 判断用户是否能够查看关注列表
+     * @param viewerId
+     * @param targetUId
+     */
+    private void checkFollowListVisible(Long viewerId,Long targetUId){
+        if (viewerId.equals(targetUId)) {
+            return;
+        }
+        UserPrivacy p = getOrInitPrivacy(targetUId);
+        AssertUtil.isTrue(isPublic(p.getShowFansList()),ErrorCodeEnum.FOLLOW_LIST_VISIBLE_ERROR);
+
+    }
+
+    /**
+     * 如果可以查看用户隐私，就点开
+     * 这个方法是用来构建用户的粉丝列表或者是关注用户列表
+     * @param viewerUId
+     * @param page
+     * @param isFansPage ,true表示是粉丝列表，false表示是关注列表
+     * @return
+     */
+    private List<UserSimpleVO> buildSimpleList(Long viewerUId, Page<UserFollow> page,boolean isFansPage){
+        List<UserFollow> records = page.getRecords();
+        if (records == null || records.isEmpty()) {
+            return List.of();
+        }
+        // 粉丝列表：谁关注了 target → userId
+        // 关注列表：target 关注了谁 → followId
+        //这个获取的是粉丝或者关注的人的ID
+        List<Long> uids = records.stream()
+                .map(r -> isFansPage ? r.getUserId() : r.getFollowId())
+                .toList();
+        // 批量查用户（没有 listByUids 就用 lambdaQuery().in）
+        List<User> users = userDao.lambdaQuery()
+                .in(User::getUId, uids)
+                .list();
+
+        Map<Long, User> userMap = users
+                .stream()
+                .collect(Collectors.toMap
+                        (User::getUId, u -> u,
+                                (a, b) -> a));
+        //这个写法实际上是告诉我们key怎么取，value怎么取，然后用上冲突合并函数
+
+
+        // 我是否已关注这些人,如果关注了就是回关
+        Set<Long> followedByMe = Set.of();
+        if (viewerUId != null && !uids.isEmpty()) {
+            followedByMe = userFollowDao
+                    .lambdaQuery()
+                    .eq(UserFollow::getUserId, viewerUId)
+                    .in(UserFollow::getFollowId, uids)
+                    .eq(UserFollow::getStatus, FOLLOWING)
+                    .list()
+                    .stream()
+                    .map(UserFollow::getFollowId)
+                    .collect(Collectors.toSet());
+        }
+        Set<Long> finalFollowed = followedByMe;
+        return uids.stream().map(id -> {
+            User u = userMap.get(id);
+            /**
+             * 这是 lambda 里的返回：每处理一个 id，产出一个 UserSimpleVO。
+             * map 会对每个 uid 调一次这个函数，把结果收集成列表。
+             */
+            return UserSimpleVO.builder()
+                    .uid(id)
+                    .nickname(u == null ? null : u.getNickname())
+                    .avatar(u == null ? null : cosUtil.toFullUrl(u.getAvatar()))
+                    .signature(u == null ? null : u.getSignature())
+                    .level(u == null ? null : u.getLevel())
+                    .followed(finalFollowed.contains(id))
+                    .build();
+        }).toList();
     }
 
 }

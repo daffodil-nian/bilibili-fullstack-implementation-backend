@@ -9,6 +9,8 @@ import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.EsUtil;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserPrivacyReq;
+import org.arrinna.bilibilimockbackground.domain.vo.user.UserSimpleVO;
+import org.arrinna.bilibilimockbackground.domain.vo.user.UserSpaceVO;
 import org.arrinna.bilibilimockbackground.manager.CosManager;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @RequestMapping("/api/user")
@@ -43,19 +46,6 @@ public class UserController {
                 }
         return Result.Success(ok);
     }
-
-    /**
-     * 用户修改头像
-     *
-     */
-//    @PutMapping("/update/avatar")
-//    public Result<Boolean> updateAvatar(@RequestAttribute("uid") Long uid
-//    ,@RequestBody Map<String,String> body){
-//        String avatar=body.get("avatar");
-//        //图片要小于2M的图片
-//        return Result.Success(userService.updateAvatar(uid,avatar));
-//    }
-
 
     @PutMapping("/update/birthday")
     public Result<Boolean> updateBirthDay(@RequestAttribute("uid") Long uid
@@ -144,12 +134,19 @@ public class UserController {
     }
 
 
+    //   /** 3. 个人主页 */
+    //    @GetMapping("/{targetUid}/space")
+    //    public Result<UserSpaceVO> getUserSpace(@RequestAttribute("uid") Long viewerUid,
+    //                                            @PathVariable Long targetUid) {
+    //        return Result.Success(userService.getUserInfo(viewerUid, targetUid));
+    //    }
     //实现用户点击个人首页能够看到用户信息
     // 如果设为隐私是看不到的除了自己
-    public Result<Boolean> ShowUserInfo(@RequestAttribute("uid") Long uid, @Param("targetUid") Long targetUid) {
-        //1.首先是用户点击user的uid，根据uid渲染出信息
+    @GetMapping("/{targetUid}/space")
+    public Result<UserSpaceVO> ShowUserInfo(@RequestAttribute("uid") Long uid, @Param("targetUid") Long targetUid) {
+        //1.首先是用户点击user的uid，这里排除了自己看自己的情况所以不要紧，我们直接
 
-        return null;
+         return Result.Success(userService.getUserInfo(uid, targetUid));
     }
 
     //4.如果用户不想让人看到自己的粉丝列表，可以选择设置，这样就看不到了
@@ -163,53 +160,29 @@ public class UserController {
 
     /** 粉丝列表 */
     @GetMapping("/{targetUid}/fans")
-    public Result<?> fans(@RequestAttribute("uid") Long viewerUid,
+    public Result<List<UserSimpleVO>> fans(@RequestAttribute("uid") Long viewerUid,
                           @PathVariable Long targetUid,
                           @RequestParam(defaultValue = "1") int page,
                           @RequestParam(defaultValue = "24") int size) {
 
-        return null;
-//        return Result.Success(userService.listFans(viewerUid, targetUid, page, size));
+        return Result.Success(userService.listFans(viewerUid,targetUid, page, size));
     }
 
     /** 关注列表 */
-    @GetMapping("/{targetUid}/fans")
-    public Result<?> follows(@RequestAttribute("uid") Long viewerUid,
-                          @PathVariable Long targetUid,
-                          @RequestParam(defaultValue = "1") int page,
-                          @RequestParam(defaultValue = "24") int size) {
-
-        return null;
-//        return Result.Success(userService.listFans(viewerUid, targetUid, page, size));
+    @GetMapping("/{targetUid}/follows")
+    public Result<List<UserSimpleVO>> follows(@RequestAttribute("uid") Long viewerUid,
+                                              @PathVariable Long targetUid,
+                                              @RequestParam(defaultValue = "1") int page,
+                                              @RequestParam(defaultValue = "24") int size) {
+        return Result.Success(userService.listFollows(viewerUid,targetUid, page, size));
     }
-//    /** 3. 个人主页 */
-//    @GetMapping("/{targetUid}/space")
-//    public Result<UserSpaceVO> getUserSpace(@RequestAttribute("uid") Long viewerUid,
-//                                            @PathVariable Long targetUid) {
-//        return Result.Success(userService.getUserInfo(viewerUid, targetUid));
-//    }
+
+
 //    /** 6. 查自己隐私（设置页） */
-//    @GetMapping("/privacy")
-//    public Result<UserPrivacyReq> getPrivacy(@RequestAttribute("uid") Long uid) {
-//        return Result.Success(userService.getMyPrivacy(uid));
-//    }
+    @GetMapping("/search/privacy")
+    public Result<UserPrivacyReq> getPrivacy(@RequestAttribute("uid") Long uid) {
 
+        return Result.Success(userService.getMyPrivacy(uid));
+    }
 
-
-//    /** 关注列表 */
-//    @GetMapping("/{targetUid}/follows")
-//    public Result<List<UserSimpleVO>> listFollows(@RequestAttribute("uid") Long viewerUid,
-//                                                  @PathVariable Long targetUid,
-//                                                  @RequestParam(defaultValue = "1") int page,
-//                                                  @RequestParam(defaultValue = "24") int size) {
-//        return Result.Success(userService.listFollows(viewerUid, targetUid, page, size));
-//    }
-//    /** 粉丝列表 */
-//    @GetMapping("/{targetUid}/fans")
-//    public Result<List<UserSimpleVO>> listFans(@RequestAttribute("uid") Long viewerUid,
-//                                               @PathVariable Long targetUid,
-//                                               @RequestParam(defaultValue = "1") int page,
-//                                               @RequestParam(defaultValue = "24") int size) {
-//        return Result.Success(userService.listFans(viewerUid, targetUid, page, size));
-//    }
 }

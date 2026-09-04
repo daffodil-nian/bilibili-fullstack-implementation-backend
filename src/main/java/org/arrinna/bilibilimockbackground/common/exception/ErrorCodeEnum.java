@@ -7,10 +7,12 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum ErrorCodeEnum {
     // ========== 登录模块 ==========
+    USER_NOT_LOGIN(10000,"用户未登录，先去登录再说吧~~~"),
     ACCOUNT_NOT_EXIST(10001, "账号不存在"),
     PASSWORD_ERROR(10002, "用户名或密码错误"),
     ACCOUNT_EMPTY(10003, "用户名不能为空"),
     PASSWORD_EMPTY(10004, "密码不能为空"),
+
 
 
     // ========== 注册模块 ==========
@@ -44,6 +46,10 @@ public enum ErrorCodeEnum {
     ARTICLE_SUMMARY_EMPTY(11025, "专栏摘要不能为空"),
     ARTICLE_NOT_FOUND(11026, "专栏不存在"),
     ARTICLE_FORBIDDEN(11027, "专栏状态私密，您不可查看"),
+
+    // =========== 隐私模块 ======
+    FANS_LIST_VISIBLE_ERROR(12001, "由于该用户隐私设置，粉丝列表不可见"),
+    FOLLOW_LIST_VISIBLE_ERROR(12002, "由于该用户隐私设置，关注列表不可见"),
 
 
     // 通用业务失败

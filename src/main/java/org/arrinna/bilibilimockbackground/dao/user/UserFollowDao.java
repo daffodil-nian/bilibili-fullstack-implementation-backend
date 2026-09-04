@@ -1,5 +1,7 @@
 package org.arrinna.bilibilimockbackground.dao.user;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
@@ -81,6 +83,42 @@ public class UserFollowDao extends ServiceImpl<UserFollowMapper, UserFollow> {
             userFollowRecord.setStatus(DefaultConstant.FOLLOWING);
         }
         return updateById(userFollowRecord);
+    }
+
+    /**
+     * 默认分页方式
+     * 这里的page用mybatis里面的类，不要用spring framework提供的抽象接口
+     * @param targetUid
+     * @param pageNum
+     * @param pageSize
+     * @return
+     */
+    public Page<UserFollow> pageFollow(long targetUid, int pageNum, int pageSize){
+        //1.然后就分页查询
+        LambdaQueryWrapper<UserFollow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserFollow::getUserId,targetUid)
+                .eq(UserFollow::getStatus,DefaultConstant.FOLLOWING)
+                .orderByDesc(UserFollow::getCreateTime);
+        Page<UserFollow> page = new Page<>(pageNum, pageSize);
+        return page(page,wrapper);
+    }
+
+    /**
+     *
+     * @param targetUid
+     * @param pageNum
+     * @param pageSize
+     * @return
+     */
+    public Page<UserFollow> pageFans(long targetUid, int pageNum, int pageSize){
+        //1.然后就分页查询
+        LambdaQueryWrapper<UserFollow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserFollow::getFollowId,targetUid)
+                .eq(UserFollow::getStatus,DefaultConstant.FOLLOWING)
+                .orderByDesc(UserFollow::getCreateTime);
+        Page<UserFollow> page = new Page<>(pageNum, pageSize);
+        return page(page,wrapper);
+
     }
 
 }
