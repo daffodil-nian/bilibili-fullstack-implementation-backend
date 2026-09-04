@@ -129,6 +129,7 @@ public class UserController {
         // 同步被关注者（粉丝数在其文档上）；toDoc 里 fansCount 仍可能是 0，后续再完善
         if (res) {
             esUtil.syncUserByUid(targetUid);
+            esUtil.syncUserByUid(uid);
         }
         return Result.Success(res);
     }
@@ -143,7 +144,7 @@ public class UserController {
     //实现用户点击个人首页能够看到用户信息
     // 如果设为隐私是看不到的除了自己
     @GetMapping("/{targetUid}/space")
-    public Result<UserSpaceVO> ShowUserInfo(@RequestAttribute("uid") Long uid, @Param("targetUid") Long targetUid) {
+    public Result<UserSpaceVO> ShowUserInfo(@RequestAttribute("uid") Long uid, @PathVariable("targetUid") Long targetUid) {
         //1.首先是用户点击user的uid，这里排除了自己看自己的情况所以不要紧，我们直接
 
          return Result.Success(userService.getUserInfo(uid, targetUid));

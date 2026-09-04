@@ -28,7 +28,9 @@ public class EsUtil {
         User user= userDao.lambdaQuery()
                 .eq(User::getUId,uid)
                 .one();
-        UserEsDoc doc = FullSyncUserToEs.toDoc(user);
+        FullSyncUserToEs fullSyncUserToEs=new FullSyncUserToEs();
+        int count=userFollowDao.getFansCount(uid);
+        UserEsDoc doc = fullSyncUserToEs.toDoc(user,count);
 
         //还要同步更新粉丝数
         int fansCount = userFollowDao.getFansCount(uid);

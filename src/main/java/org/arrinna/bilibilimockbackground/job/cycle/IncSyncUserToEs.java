@@ -3,6 +3,7 @@ package org.arrinna.bilibilimockbackground.job.cycle;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.esdoc.UserEsDoc;
 import org.arrinna.bilibilimockbackground.esdao.user.UserEsDao;
@@ -23,6 +24,8 @@ public class IncSyncUserToEs {
     private UserMapper userMapper;
     @Resource
     private UserEsDao userEsDao;
+    @Resource
+    private UserFollowDao userFollowDao;
 
     /** 每分钟：同步近 5 分钟有更新的用户 */
     @Scheduled(fixedRate = 60_000)
@@ -34,8 +37,11 @@ public class IncSyncUserToEs {
         if (users.isEmpty()) {
             return;
         }
+
         List<UserEsDoc> docs = users.stream()
-                .map(FullSyncUserToEs::toDoc)
+                .map(u -> FullSyncUserToEs.toDoc(
+                                u,
+                                userFollowDao.getFansCount(u.getUId())))
                 .collect(Collectors.toList());
         userEsDao.saveAll(docs);
         log.info("IncSyncUserToEs size={}", docs.size());

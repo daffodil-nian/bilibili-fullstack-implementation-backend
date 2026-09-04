@@ -8,6 +8,7 @@ import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
 import org.arrinna.bilibilimockbackground.common.util.CosUtil;
+import org.arrinna.bilibilimockbackground.common.util.EsUtil;
 import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserPrivacyDao;
@@ -62,6 +63,8 @@ public class UserServiceImpl implements IUserService {
     private UserPrivacyDao userPrivacyDao;
     @Autowired
     private CosUtil cosUtil;
+//    @Resource
+//    private EsUtil esUtil;
 
     @Override
     public Boolean updateSignature(Long uid, String signature){
@@ -74,14 +77,10 @@ public class UserServiceImpl implements IUserService {
         }
         //2.判断异常
         AssertUtil.isFalse(signature.length()< UserRuleEnum.SIGNATURE.getMinLength()||signature.length()>UserRuleEnum.SIGNATURE.getMaxLength(),UserRuleEnum.SIGNATURE.getErrMsg());
-
         //todo 修改了这个还要同步修改es中的数据！！！
-
         //3.然后就返回这个结果
         return userDao.updateSignatureByUId(uid,signature);
-
     }
-
     @Override
     public Boolean updateNickname(Long uid, String nickname){
 
@@ -109,9 +108,7 @@ public class UserServiceImpl implements IUserService {
         AssertUtil.isFalse(!suffixList.contains(suffix),ErrorCodeEnum.AVATAR_SIZE_ERROR);
         //如果没有符合的就说明图片类型不支持
 
-
         //4.接下来就通过拼接生成url,先上传到COS中再存储到数据库中
-
         String picture_name= avatar.getOriginalFilename();
         String filepath=String.format(COSFilePrefix.USER_AVATAR_PREFIX,uid,picture_name);
         log.info("可爱可爱的你"+picture_name);
@@ -131,7 +128,6 @@ public class UserServiceImpl implements IUserService {
             throw new RuntimeException(e);
         }
         //5.最后返回结果
-
     }
 
     @Override
