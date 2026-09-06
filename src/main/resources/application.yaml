@@ -34,3 +34,6 @@ cos:
     bucket: ${COS.bucket}
     host: ${COS.host}
 #    bucket-name: ${COS.}
+server:
+  netty:
+    port: ${netty.port}
