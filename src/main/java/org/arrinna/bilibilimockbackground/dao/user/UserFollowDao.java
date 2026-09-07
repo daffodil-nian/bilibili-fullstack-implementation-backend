@@ -121,4 +121,25 @@ public class UserFollowDao extends ServiceImpl<UserFollowMapper, UserFollow> {
 
     }
 
+    /**
+     * 判断是否两个人是互相关注,是就返回true，不是就返回false
+     * @param uid1
+     * @param uid2
+     * @return
+     */
+    public Boolean isMutualFollow(Long uid1,Long uid2){
+        if(uid1==null||uid2==null||uid1.equals(uid2)){
+            return false;
+        }
+        return isFollowing(uid1, uid2)&&isFollowing(uid2, uid1);
+    }
+
+    public boolean isFollowing(Long uid,Long targetUid){
+        return lambdaQuery()
+                .eq(UserFollow::getUserId,uid)
+                .eq(UserFollow::getFollowId,targetUid)
+                .eq(UserFollow::getStatus,DefaultConstant.FOLLOWING)
+                .count()>0;
+    }
+
 }

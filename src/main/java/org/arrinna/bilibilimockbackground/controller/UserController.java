@@ -7,11 +7,16 @@ import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.BusinessException;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.EsUtil;
+import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
+import org.arrinna.bilibilimockbackground.domain.entity.user.UserFollow;
+import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.RoomTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserFollowReq;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserPrivacyReq;
 import org.arrinna.bilibilimockbackground.domain.vo.user.UserSimpleVO;
 import org.arrinna.bilibilimockbackground.domain.vo.user.UserSpaceVO;
 import org.arrinna.bilibilimockbackground.manager.CosManager;
+import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +38,11 @@ public class UserController {
     private CosManager cosManager;
     @Resource
     private EsUtil esUtil;
+    @Resource
+    private IChatService chatService;
+    @Autowired
+    private UserFollowDao userFollowDao;
+
     /**
      * 用户修改签名
      */
@@ -125,12 +135,33 @@ public class UserController {
         if (uid.equals(targetUid)) {
             return Result.fail(DefaultConstant.FOLLOW_FAIL_MSG);
         }
+        //判断两个人是否是互相关注的，不同结果调用不同方法
+        UserFollow old=userFollowDao.getFollowByUidAndFollowId(uid,targetUid);
+        boolean wasFollowing=old!=null&&old.getStatus().equals(DefaultConstant.FOLLOWING);
+
         boolean res = userService.followUser(uid, req);
         // 同步被关注者（粉丝数在其文档上）；toDoc 里 fansCount 仍可能是 0，后续再完善
-        if (res) {
-            esUtil.syncUserByUid(targetUid);
-            esUtil.syncUserByUid(uid);
+
+
+        //关注完就要把数据信息同步到elasticSearch中
+        // 同时要调用chatService中的方法
+
+        if(!res){
+            return Result.Success(false);
         }
+
+        esUtil.syncUserByUid(targetUid);
+        esUtil.syncUserByUid(uid);
+
+        if(wasFollowing){
+            //调用取消关注的方法
+            chatService.disableFriendSession(uid,targetUid, RoomTypeEnum.FRIEND.getType());
+        }
+        else{
+            //调用关注的方法
+            chatService.createFriendSession(uid,targetUid, RoomTypeEnum.FRIEND.getType());
+        }
+
         return Result.Success(res);
     }
 

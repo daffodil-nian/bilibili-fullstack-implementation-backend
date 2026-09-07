@@ -3,11 +3,14 @@ package org.arrinna.bilibilimockbackground.domain.entity.chat;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+
+@Builder
 @Data
 @TableName("chat_room")
 public class ChatRoom implements Serializable {

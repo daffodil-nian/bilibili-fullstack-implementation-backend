@@ -35,6 +35,20 @@ public interface DefaultConstant {
     int ACCOUNT_FORBIDDEN=2;
     int LOG_OUT = 3;
 
+    int ROOM_STATUS_NORMAL = 0;//房间默认状态
+
+    int ROOM_STATUS_FORBIDDEN = 1;//房间被禁用
+
+    int ROOM_FRIEND_STATUS_NORMAL= 0;//房间好友默认状态
+
+    int ROOM_FRIEND_STATUS_FORBIDDEN= 1;//房间好友被禁用
+
+    String DEFAULT_AUTO_RESPONSE="我们已互相关注，开始聊天吧~";
+
+    String DEFAULT_SINGLE_RESPONSE="我关注了你~";
+
+    int MESSAGE_STATUS_NORMAL=0;
+
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;
