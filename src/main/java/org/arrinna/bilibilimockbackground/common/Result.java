@@ -29,13 +29,15 @@ public class Result <T>{
         result.setCode(200);
         return result;
     }
-    public static <T> Result<T> Success(String msg){
-        Result<T> result=new Result<>();
-        result.setData(null);
-        result.setMsg(msg);
-        result.setCode(200);
-        return result;
-    }
+
+   //todo 这个不能留，容易出BUG！
+//    public static <T> Result<T> Success(String msg){
+//        Result<T> result=new Result<>();
+//        result.setData(null);
+//        result.setMsg(msg);
+//        result.setCode(200);
+//        return result;
+//    }
     public static <T> Result<T> fail(String msg){
         Result<T> result=new Result<>();
         result.setCode(500);

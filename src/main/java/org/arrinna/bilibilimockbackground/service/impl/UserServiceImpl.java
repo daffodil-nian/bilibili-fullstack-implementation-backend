@@ -234,6 +234,7 @@ public class UserServiceImpl implements IUserService {
         //2.如果可以看就来拼接
         Page<UserFollow> userFansList=userFollowDao.pageFans(targetUId,page,size);
         List<UserSimpleVO> list=buildSimpleList(viewerId,userFansList,true);
+        log.info(list+"你好");
         return list;
     }
     @Override

@@ -49,6 +49,9 @@ public interface DefaultConstant {
 
     int MESSAGE_STATUS_NORMAL=0;
 
+    String DEFAULT_AVATAR = "/user/default/default.png";
+
+
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;

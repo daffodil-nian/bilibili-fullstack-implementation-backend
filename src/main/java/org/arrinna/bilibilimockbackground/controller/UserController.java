@@ -88,7 +88,7 @@ public class UserController {
         if(ok!=null){
             esUtil.syncUserByUid(uid);
         }
-        return Result.Success(ok);
+        return Result.Success(ok,"修改头像成功！"); //没想到这里也有BUG，因为string 参数优先级高，T data优先级低，所以才会出BUG，为了避免这个问题我们再传递一个msg这样就可以避开BUG了！
     }
 
     @PutMapping("/update/sex")

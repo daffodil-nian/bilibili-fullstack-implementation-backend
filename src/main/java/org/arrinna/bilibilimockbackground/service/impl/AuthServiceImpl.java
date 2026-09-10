@@ -172,6 +172,7 @@ public class AuthServiceImpl implements IAuthService {
                 .username(username)
                 .password(encryptedPassword)
                 .nickname(nickname)
+                .avatar(DefaultConstant.DEFAULT_AVATAR)
                 .signature(DefaultConstant.DEFAULT_SIGNATURE)
                 .sex(SexEnum.PROTECTED_SEX.getStatus()) //默认是保密的性别
                 .birthDay(DefaultConstant.DEFAULT_BIRTH_DAY)
