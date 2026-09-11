@@ -1,5 +1,6 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
@@ -13,6 +14,8 @@ import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatMessage;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoom;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoomFriend;
 import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
+import org.arrinna.bilibilimockbackground.im.OnlineWsMap;
+import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
 import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -197,8 +200,72 @@ public class ChatServiceImpl implements IChatService {
             saveContact(uid,roomId);
         }
     }
-    public Long sendText(Long fromUid,Long targetUid,String text){
-        return null;
+
+    /**
+     * 请让这个区别于insertTextMessage!
+     * @param fromUid
+     * @param targetUid
+     * @param text
+     * @return
+     */
+
+    @Override
+    public Long sendText(Long fromUid, Long targetUid, String text){
+        //1.判断参数是否合理昂
+        if (fromUid==null||targetUid==null||fromUid.equals(targetUid)){
+            return null;
+        }
+        //2.判断text是否OK
+        if(text==null||text.isBlank()){
+            return null;
+        }
+        //3.找到两个人的单聊房,如果没有房间或者状态是被禁止的就不OK
+        long uid1=Math.min(fromUid,targetUid);
+        long uid2=Math.max(fromUid,targetUid);
+
+        ChatRoomFriend chatRoomFriend = roomFriendDao.getFriendRecordByIds(uid1,uid2);
+        if(chatRoomFriend==null){
+            log.warn("无会话 from={}  to={}",fromUid,targetUid);
+            return null;
+        }
+        //todo
+        if(chatRoomFriend.getStatus()==DefaultConstant.ROOM_FRIEND_STATUS_FORBIDDEN){
+            log.info("会话被禁止 from={}  to={}",fromUid,targetUid);
+            return null;
+        }
+
+        //4.接下来就可以获取房间ID了
+        Long roomId = chatRoomFriend.getRoomId();
+        ensureContact(uid1,roomId);
+        ensureContact(uid2,roomId);
+
+        //5.接下来写消息ing
+        String content = text.trim();
+        Long msgId = insertTextMessage(fromUid,roomId,content);
+
+
+        //6.然后要更新room和contact的lastMsg！
+        updateRoomAndContactsLastMsg(uid1,uid2,roomId,msgId);
+
+        //7.在线则推送
+        //先写入载荷中
+        String payload = JSONUtil.createObj()
+                .set("type", WsPushTypeEnum.CHAT_MSG.getCode())
+                .set("msgId",msgId)
+                .set("roomId",roomId)
+                .set("fromUid",uid1)
+                .set("content",content)
+                .toString();
+        //判断目标是否在线
+        if(OnlineWsMap.isOnline(targetUid)){
+            OnlineWsMap.push(targetUid,payload);
+            //开始push消息
+        }
+        else{
+            log.info("id={}的用户已下线，请择日联系吧~~~ ",targetUid);
+        }
+
+        return msgId;
     }
     public Long sendImage(){
         return null;

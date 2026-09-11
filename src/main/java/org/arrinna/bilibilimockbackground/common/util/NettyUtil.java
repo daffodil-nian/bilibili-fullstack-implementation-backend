@@ -17,7 +17,7 @@ public class NettyUtil {
         attr.set(data);
     }
 
-    public static <T> T getAttr(Channel channel, AttributeKey<T> ip) {
-        return channel.attr(ip).get();
+    public static <T> T getAttr(Channel channel, AttributeKey<T> key) {
+        return channel.attr(key).get();
     }
 }

@@ -15,6 +15,7 @@ import io.netty.util.concurrent.Future;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.arrinna.bilibilimockbackground.im.handler.HttpHeadersHandler;
 import org.arrinna.bilibilimockbackground.im.handler.WebSocketHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -55,7 +56,8 @@ public class IMServer {
                                     .addLast(new ChunkedWriteHandler())
                                     .addLast(new HttpObjectAggregator(1024*64))
 //                                  todo  这是自己的业务处理器，待完成。。。
-//                                    .addLast(new WebSocketHandler())
+                                    .addLast(new WebSocketHandler())
+                                    .addLast(new HttpHeadersHandler())
 //                                    netty提供websocket的处理器,意思是在这个路径下都会转换升级遵循该协议，转换相关模式
                                     .addLast(new WebSocketServerProtocolHandler("/ws"))
                             ; //添加handler，也就是具体的IO事件处理器

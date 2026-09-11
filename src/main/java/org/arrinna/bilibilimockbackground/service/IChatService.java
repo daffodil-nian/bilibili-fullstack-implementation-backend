@@ -8,4 +8,6 @@ public interface IChatService {
 
     @Transactional(rollbackFor = Exception.class)
     void disableFriendSession(Long viewerUid, Long targetUid, int type);
+
+    Long sendText(Long fromUid, Long targetUid, String text);
 }
