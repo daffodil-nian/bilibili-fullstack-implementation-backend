@@ -14,14 +14,21 @@ import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatMessage;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoom;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoomFriend;
 import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
-import org.arrinna.bilibilimockbackground.im.OnlineWsMap;
+import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
+import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
 import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
+import org.arrinna.bilibilimockbackground.im.push.ImPushGateway;
 import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -37,6 +44,8 @@ public class ChatServiceImpl implements IChatService {
     private MessageDao messageDao;
     @Autowired
     private UserFollowDao userFollowDao;
+    @Resource
+    private ImPushGateway imPushGateway;
 
     /**
      * 关注一个人就会收到他的自动回复，关注之后要先判断是否是互关，
@@ -253,17 +262,12 @@ public class ChatServiceImpl implements IChatService {
                 .set("type", WsPushTypeEnum.CHAT_MSG.getCode())
                 .set("msgId",msgId)
                 .set("roomId",roomId)
-                .set("fromUid",uid1)
+                .set("fromUid",fromUid)
                 .set("content",content)
                 .toString();
-        //判断目标是否在线
-        if(OnlineWsMap.isOnline(targetUid)){
-            OnlineWsMap.push(targetUid,payload);
-            //开始push消息
-        }
-        else{
-            log.info("id={}的用户已下线，请择日联系吧~~~ ",targetUid);
-        }
+//            OnlineWsMap.push(targetUid,payload);
+            //开始push消息【在思考怎么写】
+            imPushGateway.pushToUser(List.of(targetUid),payload);
 
         return msgId;
     }
@@ -295,6 +299,112 @@ public class ChatServiceImpl implements IChatService {
         message.setStatus(DefaultConstant.MESSAGE_STATUS_NORMAL);
         messageDao.save(message);
         return message.getId();
+    }
+
+    /**
+     * 这个是列举联系人的列表的信息
+     * 首先得判断传入的参数是否合法，如果合法就根据uid获取contact表的数据
+     * 并且，还要准备一个空的list用来接收结果
+     * 然后就是看chatRoomFriend了，根据c中的roomId获取两个人之间的一个状态
+     * @param uid
+     * @return
+     */
+    @Override
+    public List<ContactItemVO> listContacts(Long uid){
+
+        //1.uid为空就返回一个空的列表
+        if(uid==null){
+            return List.of();
+        }
+        //2.接下来可以获取contacts的一些信息了哈哈哈，时间靠前的优先。
+        List<ChatContact> contacts = contactDao.listByUidOrderByActive(uid);
+        //3.接下来就是准备返回给前端的list
+        List<ContactItemVO> result = new ArrayList<>();
+        //4.接下来就是把
+        for(ChatContact c:contacts){
+            //一条数据代表着一条和别人的记录
+            ChatRoomFriend chatRoomFriend = roomFriendDao.getByRoomId(c.getRoomId());
+            if(chatRoomFriend==null){
+                continue;
+                //如果没有就跳过
+            }
+            if(Objects.equals(chatRoomFriend.getStatus(),DefaultConstant.ROOM_FRIEND_STATUS_FORBIDDEN)){
+                continue;
+            }
+            Long peerUid = Objects.equals(chatRoomFriend.getUid1(),uid)?chatRoomFriend.getUid2():chatRoomFriend.getUid1();
+            //找到了同伴的uid之后，就构造ContactItemVO
+            ContactItemVO vo = new ContactItemVO();
+            vo.setPeerUid(peerUid);
+            vo.setRoomId(c.getRoomId());
+            vo.setActiveTime(c.getActiveTime());
+            vo.setLastMsgId(c.getLastMsgId());
+
+            //从chatMessage中获取最后一条消息
+            if(c.getLastMsgId()!=null){
+                ChatMessage last = messageDao.getById(c.getLastMsgId());
+                if(last!=null)
+                    vo.setLastContent(last.getContent());
+            }
+            result.add(vo);
+        }
+
+        return result;
+    }
+
+    /**
+     * 消息加载，这个功能是加载消息的方法
+     * @param uid
+     * @param roomId
+     * @param limit
+     * @return
+     */
+    @Override
+    public List<ChatMessageVO> listMessages(Long uid, Long roomId, int limit){
+        //这个方法实际只需要关联chatMessage和chatContact差不多应该没问题了
+        if(uid==null || roomId==null){
+            return List.of();//如果用户没登录或者房间被删了就return一个空列表
+        }
+        ChatContact mine = contactDao.getByUidAndRoomId(uid,roomId); //从我的视角下获取contact表信息
+        if(mine==null){
+            return List.of();//如果我的视角下没有这个房间，就return一个空列表
+        }
+        //因为limit一次有一个限制，所以得判断是否是合规的参数，如果是负数或者大于0就折中
+        int size = (limit<=0 || limit>100)?50:limit;
+        List<ChatMessage> list = messageDao.listByRoomId(roomId,size);
+
+        Collections.reverse(list);//然后让记录反过来
+//        ChatMessageVO vo= new ChatMessageVO();
+
+        return list.stream()
+                .map(m->{
+                    ChatMessageVO vo = new ChatMessageVO();
+                    vo.setMsgId(m.getId());
+                    vo.setRoomId(m.getRoomId());
+                    vo.setType(m.getType());
+                    vo.setCreateTime(m.getCreateTime());
+                    vo.setFromUid(m.getFromUid());
+                    vo.setContent(m.getContent());
+                    return vo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 判断一个人有没有读过一段记录，如果点进去聊天记录就要调用这个方法
+     * @param uid
+     * @param roomId
+     */
+    @Override
+    public void markRead(Long uid, Long roomId){
+        if(uid==null || roomId==null){return;}
+        ChatContact chatContact = contactDao.getByUidAndRoomId(uid,roomId);
+        if(chatContact==null){
+            return;
+        }
+        chatContact.setReadTime(LocalDateTime.now());
+        chatContact.setUpdateTime(LocalDateTime.now());
+        //之所以不更新activeTime，是因为这个只是
+        contactDao.updateById(chatContact);
     }
 
 }

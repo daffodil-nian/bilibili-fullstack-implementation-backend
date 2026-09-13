@@ -77,6 +77,7 @@ public class AuthServiceImpl implements IAuthService {
         String token = RedisUtils.get(redisKey);
         if(token!=null){
             log.info("用户已经登录，token续期7天");
+
             RedisUtils.expire(redisKey,7, TimeUnit.DAYS);
         }
         //5.否则就是重新生成jwt并且存在redis中
@@ -208,6 +209,7 @@ public class AuthServiceImpl implements IAuthService {
                 .builder()
                 .uId(user.getUId())
                 .build();
+        userPrivacyDao.save(userPrivacy);
 
         return isRegister;
     }

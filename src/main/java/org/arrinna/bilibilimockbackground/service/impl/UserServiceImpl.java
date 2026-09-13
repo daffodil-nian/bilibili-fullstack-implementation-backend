@@ -221,7 +221,7 @@ public class UserServiceImpl implements IUserService {
                 .followCount(userFollowDao.getFollowCount(targetUId))
                 .fansCount(userFollowDao.getFansCount(targetUId))
                 .likeCount(0L)//这个暂时替代一下
-                .playCount(0L)
+                .playCount(0L)//这个也是
                 .showFollowList(showFollowList)
                 .showFansList(showFansList)
                 .build();
@@ -350,9 +350,11 @@ public class UserServiceImpl implements IUserService {
 
         // 我是否已关注这些人,如果关注了就是回关
         Set<Long> followedByMe = Set.of();
+        Set<Long> followsMe = Set.of();
+
+
         if (viewerUId != null && !uids.isEmpty()) {
-            followedByMe = userFollowDao
-                    .lambdaQuery()
+            followedByMe = userFollowDao.lambdaQuery()
                     .eq(UserFollow::getUserId, viewerUId)
                     .in(UserFollow::getFollowId, uids)
                     .eq(UserFollow::getStatus, FOLLOWING)
@@ -360,10 +362,27 @@ public class UserServiceImpl implements IUserService {
                     .stream()
                     .map(UserFollow::getFollowId)
                     .collect(Collectors.toSet());
+
+            //是否关注了我，可以这么理解这个是找uids关注了我的
+            followsMe = userFollowDao.lambdaQuery()
+                    .in(UserFollow::getUserId, uids)          // 关注者在列表里
+                    .eq(UserFollow::getFollowId, viewerUId)    // 被关注的人是我
+                    .eq(UserFollow::getStatus, FOLLOWING)
+                    .list()
+                    .stream()
+                    .map(UserFollow::getUserId)
+                    .collect(Collectors.toSet());
+
         }
         Set<Long> finalFollowed = followedByMe;
+        Set<Long> finalFollowsMe = followsMe;
+
+
         return uids.stream().map(id -> {
             User u = userMap.get(id);
+            boolean followed = finalFollowed.contains(u.getUId());
+            boolean mutual= followed&&finalFollowsMe.contains(u.getUId());
+
             /**
              * 这是 lambda 里的返回：每处理一个 id，产出一个 UserSimpleVO。
              * map 会对每个 uid 调一次这个函数，把结果收集成列表。
@@ -374,9 +393,22 @@ public class UserServiceImpl implements IUserService {
                     .avatar(u == null ? null : cosUtil.toFullUrl(u.getAvatar()))
                     .signature(u == null ? null : u.getSignature())
                     .level(u == null ? null : u.getLevel())
-                    .followed(finalFollowed.contains(id))
+                    .followed(followed)
+                    .isMutualFollow(mutual)
                     .build();
         }).toList();
+    }
+
+
+    /**
+     * 不要写在map中，会变成N次查库，这个后续还会优化的。
+     * @param uid1
+     * @param uid2
+     * @return
+     */
+    private Boolean isMutualFollow(Long uid1,Long uid2){
+
+        return userFollowDao.isMutualFollow(uid1,uid2);
     }
 
 }

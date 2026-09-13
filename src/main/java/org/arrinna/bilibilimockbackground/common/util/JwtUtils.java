@@ -9,6 +9,9 @@ import java.util.Date;
 
 @Slf4j
 @Component
+/**
+ * JWT  JSON Web Token
+ */
 public class JwtUtils {
 
 
@@ -20,6 +23,7 @@ public class JwtUtils {
     private static final String CREATE_TIME = "create_time";
 
     /**
+     * 这个是token的创建方法
      * 建JWT，包括header，payload和signature
      * @param uid
      * @return

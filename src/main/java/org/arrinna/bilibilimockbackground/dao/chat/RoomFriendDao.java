@@ -22,4 +22,11 @@ public class RoomFriendDao extends ServiceImpl<RoomFriendMapper, ChatRoomFriend>
                 .eq(ChatRoomFriend::getUid2,uid2)
                 .one();
     }
+
+    //需要写一个根据roomId获取chatFriendRoom,这个是获取两个人之间的房间状态的
+    public ChatRoomFriend getByRoomId(Long roomId){
+        return lambdaQuery()
+                .eq(ChatRoomFriend::getRoomId,roomId)
+                .one();
+    }
 }

@@ -13,4 +13,5 @@ public class UserSimpleVO {
     private String signature;
     private Integer level;
     private Boolean followed;     // 我是否已关注对方
+    private Boolean isMutualFollow; // 是否互相关注
 }

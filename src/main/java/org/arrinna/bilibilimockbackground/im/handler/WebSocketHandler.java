@@ -7,13 +7,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.util.NettyUtil;
 import org.arrinna.bilibilimockbackground.im.OnlineWsMap;
 import org.arrinna.bilibilimockbackground.im.enums.WsCommandEnum;
 import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
 import org.arrinna.bilibilimockbackground.service.IChatService;
+import org.arrinna.bilibilimockbackground.service.impl.OfflineMsgPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -22,13 +22,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
 
-    @Resource
+    /** 静态持有，靠下面 setter 注入；不要用 @Resource/@Autowired 标在 static 字段上 */
     private static IChatService chatService;
 
-    @Autowired
-    public void setChatService(IChatService chatService){
-        WebSocketHandler.chatService=chatService;
+    private static OfflineMsgPushService offlineMsgPushService;
 
+    @Autowired
+    public void setChatService(IChatService chatService) {
+        WebSocketHandler.chatService = chatService;
     }
 
     @Override
@@ -45,7 +46,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
          */
 
         if(evt instanceof WebSocketServerProtocolHandler.HandshakeComplete){
-            //如果握手完毕，
+            //如果握手完毕，也就是说从channel获取到uid了，然后就可以开始通信了。
             Long uid = NettyUtil.getAttr(ctx.channel(),NettyUtil.UID);
             OnlineWsMap.put(uid,ctx.channel());
             log.info("用户uid={} 上线",uid);
@@ -119,7 +120,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
     }
 
     //除了连接写消息以外，还有连接断开，下线注销的功能
-    //我们重写方法的实现吧！
+    //
     @Override
     public void channelInactive(ChannelHandlerContext ctx){
         Long uid = NettyUtil.getAttr(ctx.channel(),NettyUtil.UID);
@@ -132,5 +133,14 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
 
         ctx.fireChannelInactive();
 
+    }
+
+    /**
+     * 设置离线消息推送服务
+     * @param offlineMsgPushService
+     */
+    @Autowired
+    public void setOfflineMsgPushService(OfflineMsgPushService offlineMsgPushService){
+        WebSocketHandler.offlineMsgPushService= offlineMsgPushService;
     }
 }

@@ -1,6 +1,11 @@
 snow:
   worker-id: 1
 spring:
+  rabbitmq:
+    host: ${rabbitmq.host}
+    port: ${rabbitmq.port}
+    username: ${rabbitmq.username}
+    password: ${rabbitmq.password}
   profiles:
     active: local
   data:
@@ -25,6 +30,8 @@ spring:
     uris: ${ES.host}
     username: ${ES.username}
     password: ${ES.password}
+  application:
+    name: ${bili-chat.name}
 
 cos:
   client:
@@ -37,3 +44,8 @@ cos:
 server:
   netty:
     port: ${netty.port}
+
+
+bili:
+  im:
+    push-via-mq: true
