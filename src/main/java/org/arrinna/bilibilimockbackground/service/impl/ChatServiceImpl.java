@@ -4,15 +4,18 @@ import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
+import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.dao.chat.ContactDao;
 import org.arrinna.bilibilimockbackground.dao.chat.MessageDao;
 import org.arrinna.bilibilimockbackground.dao.chat.RoomDao;
 import org.arrinna.bilibilimockbackground.dao.chat.RoomFriendDao;
+import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatContact;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatMessage;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoom;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoomFriend;
+import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
@@ -24,16 +27,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class ChatServiceImpl implements IChatService {
 
+    @Resource
+    private UserDao userDao;
     @Resource
     private RoomDao roomDao;
     @Resource
@@ -46,6 +49,8 @@ public class ChatServiceImpl implements IChatService {
     private UserFollowDao userFollowDao;
     @Resource
     private ImPushGateway imPushGateway;
+    @Resource
+    private CosUtil cosUtil;
 
     /**
      * 关注一个人就会收到他的自动回复，关注之后要先判断是否是互关，
@@ -318,8 +323,38 @@ public class ChatServiceImpl implements IChatService {
         }
         //2.接下来可以获取contacts的一些信息了哈哈哈，时间靠前的优先。
         List<ChatContact> contacts = contactDao.listByUidOrderByActive(uid);
+
+        if(contacts.isEmpty()){
+            return List.of();
+        }
+
+        //3.接下来批量房间好友数量，我先把关系表画一下吧太复杂了
+        List<Long> roomIds =contacts.stream()
+                .map(ChatContact::getRoomId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        //只要在这个房间的friends都可以过来
+        List<ChatRoomFriend> friends = roomFriendDao.getByRoomIds(roomIds);
+
+
+        //然后待会就可以筛选出来,跟据roomId映射
+        Map<Long,ChatRoomFriend> friendMap=friends
+                .stream().
+                collect(Collectors.toMap(ChatRoomFriend::getRoomId, Function.identity()));
+
+        //然后接下来就是根据friend之间的关系进一步筛选
+
         //3.接下来就是准备返回给前端的list
         List<ContactItemVO> result = new ArrayList<>();
+
+
+        Set<Long> peerUidSet = new HashSet<>();
+        Set<Long> lastMsgIdSet = new HashSet<>();
+
+
+
         //4.接下来就是把
         for(ChatContact c:contacts){
             //一条数据代表着一条和别人的记录
@@ -331,6 +366,7 @@ public class ChatServiceImpl implements IChatService {
             if(Objects.equals(chatRoomFriend.getStatus(),DefaultConstant.ROOM_FRIEND_STATUS_FORBIDDEN)){
                 continue;
             }
+            //找到同伴的uid
             Long peerUid = Objects.equals(chatRoomFriend.getUid1(),uid)?chatRoomFriend.getUid2():chatRoomFriend.getUid1();
             //找到了同伴的uid之后，就构造ContactItemVO
             ContactItemVO vo = new ContactItemVO();
@@ -338,6 +374,7 @@ public class ChatServiceImpl implements IChatService {
             vo.setRoomId(c.getRoomId());
             vo.setActiveTime(c.getActiveTime());
             vo.setLastMsgId(c.getLastMsgId());
+//            vo.setPeerAvatar();
 
             //从chatMessage中获取最后一条消息
             if(c.getLastMsgId()!=null){
@@ -345,7 +382,41 @@ public class ChatServiceImpl implements IChatService {
                 if(last!=null)
                     vo.setLastContent(last.getContent());
             }
+            if(peerUid!=null){
+                peerUidSet.add(peerUid);
+            }
             result.add(vo);
+        }
+
+        //
+        Map<Long, User> userMap=Map.of();
+        if(!peerUidSet.isEmpty()){
+            List<User> users = userDao.listByIds(peerUidSet);
+            //然后匹配 ！
+            userMap = users.stream()
+                    .collect(Collectors.toMap(User::getUId, u->u,(a,b)->a));
+
+
+        }
+
+        Map<Long,ChatMessage> msgMap = Map.of();
+        if(!lastMsgIdSet.isEmpty()){
+            List<ChatMessage> msgs = messageDao.listByIds (lastMsgIdSet);
+            msgMap = msgs.stream ()
+                    .collect (Collectors.toMap (ChatMessage::getId, m -> m, (a, b) -> a));
+        }
+        for (ContactItemVO vo : result) {
+            User u = userMap.get (vo.getPeerUid ());
+            if (u != null) {
+                vo.setPeerNickname (u.getNickname ());
+                vo.setPeerAvatar (cosUtil.toFullUrl (u.getAvatar ())); // 相对路径 → 完整 URL
+            }
+            if (vo.getLastMsgId () != null) {
+                ChatMessage last = msgMap.get (vo.getLastMsgId ());
+                if (last != null) {
+                    vo.setLastContent (last.getContent ());
+                }
+            }
         }
 
         return result;

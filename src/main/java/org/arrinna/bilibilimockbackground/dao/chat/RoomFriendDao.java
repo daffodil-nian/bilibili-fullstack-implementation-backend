@@ -1,9 +1,12 @@
 package org.arrinna.bilibilimockbackground.dao.chat;
 
+import cn.hutool.core.annotation.Link;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoomFriend;
 import org.arrinna.bilibilimockbackground.mapper.chat.RoomFriendMapper;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class RoomFriendDao extends ServiceImpl<RoomFriendMapper, ChatRoomFriend> {
@@ -28,5 +31,12 @@ public class RoomFriendDao extends ServiceImpl<RoomFriendMapper, ChatRoomFriend>
         return lambdaQuery()
                 .eq(ChatRoomFriend::getRoomId,roomId)
                 .one();
+    }
+
+    //需要写一个根据roomId获取chatFriendRoom,这个是获取两个人之间的房间状态的
+    public List<ChatRoomFriend> getByRoomIds(List<Long> roomId){
+        return lambdaQuery()
+                .in(ChatRoomFriend::getRoomId,roomId)
+                .list();
     }
 }

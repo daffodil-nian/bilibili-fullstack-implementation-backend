@@ -6,7 +6,13 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.amqp.SimpleRabbitListenerContainerFactoryConfigurer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +22,35 @@ import org.springframework.context.annotation.Configuration;
 public class ImMqConfig {
     @Value("${spring.application.name}")
     private String appName;
+
+    /**
+     * 用 JSON 收发业务对象，避免默认 Java 序列化在 Boot3 下反序列化被拒。
+     */
+    @Bean
+    public MessageConverter imJsonMessageConverter() {
+        return new Jackson2JsonMessageConverter();
+    }
+
+    /** 生产者明确走 JSON，避免仍用默认 SimpleMessageConverter（Java 序列化） */
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
+                                         MessageConverter imJsonMessageConverter) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(imJsonMessageConverter);
+        return rabbitTemplate;
+    }
+
+    /** 消费者明确走 JSON，否则会 SecurityException: deserialize unauthorized class */
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+            SimpleRabbitListenerContainerFactoryConfigurer configurer,
+            ConnectionFactory connectionFactory,
+            MessageConverter imJsonMessageConverter) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        configurer.configure(factory, connectionFactory);
+        factory.setMessageConverter(imJsonMessageConverter);
+        return factory;
+    }
 
     /**
      * 消息推送交换机，实际上就是广播，把收到的消息无条件的复制一份，然后就投递给所有绑定的队列，
