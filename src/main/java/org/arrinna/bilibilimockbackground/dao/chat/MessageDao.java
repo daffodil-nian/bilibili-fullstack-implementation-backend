@@ -1,6 +1,8 @@
 package org.arrinna.bilibilimockbackground.dao.chat;
 
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatMessage;
 import org.arrinna.bilibilimockbackground.mapper.chat.MessageMapper;
 import org.springframework.stereotype.Service;
@@ -49,6 +51,40 @@ public class MessageDao extends ServiceImpl<MessageMapper,ChatMessage> {
                 .orderByDesc(ChatMessage::getId)
                 .last("limit " + Math.max(1, Math.min(limit, 100)))
                 .list();
+    }
+
+
+    //只要跟据msg个yud来就可以撤回,就传入userId和messageId两个参数
+
+    /**
+     *
+     * @param userId
+     * @param messageId
+     * @return
+     */
+    public Boolean recallOwnIfNormal(Long userId,Long messageId){
+
+        return lambdaUpdate()
+                .eq(ChatMessage::getStatus,DefaultConstant.MESSAGE_STATUS_NORMAL)
+                .eq(ChatMessage::getFromUid,userId)
+                .eq(ChatMessage::getId,messageId)
+                .set(ChatMessage::getUpdateTime, DateTime.now())
+                .set(ChatMessage::getStatus, DefaultConstant.MESSAGE_STATUS_RECALL)
+                .update();
+    }
+
+    /**
+     * 这是管理员撤回的dao层方法,不需要校验fromUid，只需要保证是正常状态
+     * @return
+     */
+    public boolean recallByAdminIfNormal(Long messageId){
+
+        return lambdaUpdate()
+                .eq(ChatMessage::getId,messageId)
+                .eq(ChatMessage::getStatus,DefaultConstant.MESSAGE_STATUS_NORMAL)
+                .set(ChatMessage::getStatus, DefaultConstant.MESSAGE_STATUS_RECALL)
+                .set(ChatMessage::getUpdateTime, DateTime.now())
+                .update();
     }
 
 

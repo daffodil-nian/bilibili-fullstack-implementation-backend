@@ -18,5 +18,7 @@ public class ChatMessageVO {
     private String content;//内容
     private Integer type;//类型
     private LocalDateTime createTime;//消息的 创建时间
+//    private String fromNickname;
+//    private String fromAvatar;
 
 }

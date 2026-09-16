@@ -52,6 +52,17 @@ public enum ErrorCodeEnum {
     FOLLOW_LIST_VISIBLE_ERROR(12002, "由于该用户隐私设置，关注列表不可见"),
 
 
+
+    // ========== 聊天模块 ==========
+    MESSAGE_NOT_FOUND(13001, "消息不存在"),
+    MESSAGE_RECALL_FAIL(13002, "撤回失败，消息不存在或已撤回"),
+    PRIVILEGE_ERROR(13003, "权限不足,不能撤回这条消息哦！"),
+    RECALL_ALREADY(13004, "消息已撤回"),
+    RECALL_TIMEOUT(13005, "已超过可撤回时间"),
+    RECALL_SESSION_INVALID(13006, "会话不存在或已禁用"),
+    RECALL_GROUP_UNSUPPORTED(13007, "群聊撤回暂未开放"),
+
+
     // 通用业务失败
     BUSINESS_FAIL(40000, "业务校验失败"),
     PARAM_ERROR(40001, "请求参数非法"),

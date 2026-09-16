@@ -49,8 +49,14 @@ public interface DefaultConstant {
 
     int MESSAGE_STATUS_NORMAL=0;
 
+    //消息状态撤回为1
+    int MESSAGE_STATUS_RECALL = 1;
+
     String DEFAULT_AVATAR = "/user/default/default.png";
 
+
+    /* 发送后多少分钟内可以撤回 */
+    int MESSAGE_RECALL_LIMIT_MINUTES=2;//撤回时间的限制ing
 
 //    int NICKNAME_MIN_LENGTH=3;
 //

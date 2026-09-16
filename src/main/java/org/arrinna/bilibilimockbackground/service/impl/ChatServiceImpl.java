@@ -4,6 +4,8 @@ import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
+import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
+import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
 import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.dao.chat.ContactDao;
 import org.arrinna.bilibilimockbackground.dao.chat.MessageDao;
@@ -455,6 +457,7 @@ public class ChatServiceImpl implements IChatService {
                     vo.setCreateTime(m.getCreateTime());
                     vo.setFromUid(m.getFromUid());
                     vo.setContent(m.getContent());
+//                    vo.setFromAvatar(m.get);
                     return vo;
                 })
                 .collect(Collectors.toList());
@@ -476,6 +479,83 @@ public class ChatServiceImpl implements IChatService {
         chatContact.setUpdateTime(LocalDateTime.now());
         //之所以不更新activeTime，是因为这个只是
         contactDao.updateById(chatContact);
+    }
+
+
+    /**
+     *
+     * 在考虑撤回的代码要不要加上锁。。。
+     * 而且有可能会出现重复撤回的情况，这个怎么预防？！
+     * 我这个代码是否要引入redis，引入了redis之后能够给我的代码带来什么效果，撤回功能怎么办才能做到不会被反复撤回
+     * 如果重复撤回，会给我带来什么
+     *
+     * @param userId
+     * @param messageId
+     * @return
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void recallMessage(Long userId,Long messageId){
+        //1.首先校验参数是否正确，如果不正确就return false
+        AssertUtil.isFalse(userId==null||messageId==null, ErrorCodeEnum.PARAM_ERROR);
+
+        //2.然后就从数据库中查询相关信息！
+        ChatMessage chatMessage = messageDao.getById(messageId);
+
+        AssertUtil.isFalse(chatMessage==null,ErrorCodeEnum.MESSAGE_NOT_FOUND);
+
+        //3.接下来判断是否是重复撤回的
+        AssertUtil.isFalse(Objects.equals(chatMessage.getStatus(),DefaultConstant.MESSAGE_STATUS_RECALL),ErrorCodeEnum.RECALL_ALREADY);
+
+        //4.如果过了时间也是不能撤回的！也就是说，如果现在的时间减去2大于创建时间就说明不能撤回
+        AssertUtil.isFalse(
+//                这个minusMinute是减去多少分钟的意思
+                chatMessage.getCreateTime().isBefore(LocalDateTime.now().minusMinutes(DefaultConstant.MESSAGE_RECALL_LIMIT_MINUTES))
+                ,ErrorCodeEnum.RECALL_TIMEOUT
+        );
+
+        //5.接下来所有情况都考虑到了，排查了chatMessages，排查了参数问题重复撤回还有是否过了撤回时间等问题，就可以开始干了
+        assertCanRecallPrivate(userId,chatMessage);
+
+        //6.然后要把撤回的消息通知给对方，首先要获取msg的所属的房间,接着跟据roomId获取到对方的uid
+        ChatRoomFriend chatRoomFriend = roomFriendDao.getByRoomId(chatMessage.getRoomId());
+
+        //7.接着给对方发消息，消息要推送到消息队列中去，但是和普通消息有区别，type值是CHAT_RECALL
+        AssertUtil.isFalse(chatMessage==null || Objects.equals(chatRoomFriend.getStatus(),DefaultConstant.ROOM_FRIEND_STATUS_FORBIDDEN),ErrorCodeEnum.RECALL_SESSION_INVALID);
+
+        //8.聊天对话是OK的就可以去更新了
+       boolean ok= messageDao.recallOwnIfNormal(userId,messageId);
+       //9.如果还是更新不成功，就说明已经撤回了，以防万一我们写一下这段代码
+        AssertUtil.isFalse(!ok,ErrorCodeEnum.RECALL_ALREADY);
+
+        //10.接下来可以构造载荷了，然后把消息推送到消息队列中去。
+        /**
+         * 载荷格式
+         * String payload = JSONUtil.createObj()
+         *                 .set("type", WsPushTypeEnum.CHAT_MSG.getCode())
+         *                 .set("msgId",msgId)
+         *                 .set("roomId",roomId)
+         *                 .set("fromUid",fromUid)
+         *                 .set("content",content)
+         *                 .toString();
+         */
+        String payload = JSONUtil.createObj()
+                .set("type",WsPushTypeEnum.CHAT_RECALL.getCode())
+                .set("msgId",messageId)
+                .set("roomId",chatRoomFriend.getRoomId())
+                .set("operatorUid",userId)
+                .toString();
+
+        imPushGateway.pushToUser(List.of(chatRoomFriend.getUid1(),chatRoomFriend.getUid2()),payload);
+
+        log.info("撤回消息成功！ operatorUid={}   msgId={}",userId,messageId);
+    }
+
+    private void assertCanRecallPrivate(Long operatorUid,ChatMessage msg){
+        AssertUtil.isFalse(
+                !Objects.equals(operatorUid,msg.getFromUid())
+                ,ErrorCodeEnum.PRIVILEGE_ERROR
+        );
+
     }
 
 }

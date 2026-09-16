@@ -13,7 +13,10 @@ import java.util.stream.Collectors;
 public enum WsPushTypeEnum {
     ACK("ACK"),
     ERROR("ERROR"),
-    CHAT_MSG("CHAT_MSG");
+    CHAT_MSG("CHAT_MSG"),
+    CHAT_RECALL("CHAT_RECALL"),
+
+    ;
     private final String code;
 
     private static Map<String, WsPushTypeEnum> cache;
