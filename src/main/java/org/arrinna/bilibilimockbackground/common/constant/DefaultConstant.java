@@ -58,6 +58,9 @@ public interface DefaultConstant {
     /* 发送后多少分钟内可以撤回 */
     int MESSAGE_RECALL_LIMIT_MINUTES=2;//撤回时间的限制ing
 
+    long MAX_EMOTICON_SIZE=1*1024*1024l;
+
+
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;

@@ -13,7 +13,7 @@ import org.arrinna.bilibilimockbackground.im.OnlineWsMap;
 import org.arrinna.bilibilimockbackground.im.enums.WsCommandEnum;
 import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
 import org.arrinna.bilibilimockbackground.service.IChatService;
-import org.arrinna.bilibilimockbackground.service.impl.OfflineMsgPushService;
+import org.arrinna.bilibilimockbackground.service.OfflineMsgPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

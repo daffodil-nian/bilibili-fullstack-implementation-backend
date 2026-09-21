@@ -96,7 +96,8 @@ public class UserServiceImpl implements IUserService {
 
         AssertUtil.isFalse(avatar.isEmpty(),ErrorCodeEnum.AVATAR_EMPTY);
         //2.要获取头像的大小，首先看看文件后缀是否符合要求，如果不符合要求也不行
-        final ArrayList<String> suffixList = List.of("jpg", "png", "jpeg").stream().map(String::toLowerCase).collect(Collectors.toCollection(ArrayList::new));
+        final ArrayList<String> suffixList = List.of("jpg", "png", "jpeg")
+                .stream().map(String::toLowerCase).collect(Collectors.toCollection(ArrayList::new));
 
         AssertUtil.isFalse(avatar.getSize()>DefaultConstant.MAX_AVATAR_SIZE,ErrorCodeEnum.AVATAR_SIZE_ERROR);
 
@@ -105,7 +106,7 @@ public class UserServiceImpl implements IUserService {
         log.info("图片类型是:{}",PicType);
         String suffix=PicType.split("/")[1];
         log.info("图片后缀是:{}",suffix);
-        AssertUtil.isFalse(!suffixList.contains(suffix),ErrorCodeEnum.AVATAR_SIZE_ERROR);
+        AssertUtil.isFalse(!suffixList.contains(suffix),ErrorCodeEnum.AVATAR_TYPE_ERROR);
         //如果没有符合的就说明图片类型不支持
 
         //4.接下来就通过拼接生成url,先上传到COS中再存储到数据库中

@@ -558,4 +558,6 @@ public class ChatServiceImpl implements IChatService {
 
     }
 
+    //接下来增加表情包管理的功能，可以自定义增加表情包
+
 }

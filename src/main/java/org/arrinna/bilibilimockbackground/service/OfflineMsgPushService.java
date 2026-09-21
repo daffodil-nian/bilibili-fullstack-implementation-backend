@@ -1,4 +1,4 @@
-package org.arrinna.bilibilimockbackground.service.impl;
+package org.arrinna.bilibilimockbackground.service;
 
 import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;

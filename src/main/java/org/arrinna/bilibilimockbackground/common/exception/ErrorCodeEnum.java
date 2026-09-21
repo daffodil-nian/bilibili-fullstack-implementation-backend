@@ -62,10 +62,25 @@ public enum ErrorCodeEnum {
     RECALL_SESSION_INVALID(13006, "会话不存在或已禁用"),
     RECALL_GROUP_UNSUPPORTED(13007, "群聊撤回暂未开放"),
 
+    // ErrorCodeEnum
+    EMOTICON_NOT_FOUND(14001, "表情不存在"),
+    EMOTICON_OFF_SHELF(14002, "表情包已下架"),
+    EMOTICON_PENDING(14003, "表情审核中，暂不可用"),
+    EMOTICON_RATE_LIMIT(14004, "发送太频繁，请稍后再试"),
+    EMOTICON_UPLOAD_FAIL(14005, "表情上传失败"),
+    EMOTICON_UPLOAD_LIMIT(14006, "表情上传数量已达上限！"),//100个就到上限了
+    EMOTICON_SIZE_LIMIT(14007, "表情大小超过限制,不能超过2M的哦！"),
+    EMOTICON_TYPE_ERROR(14008, "表情类型错误，仅支持png、jpg、jpeg格式"),
+    EMOTICON_DUPLICATE(14009, "表情已存在，请勿重复上传"),
 
     // 通用业务失败
     BUSINESS_FAIL(40000, "业务校验失败"),
     PARAM_ERROR(40001, "请求参数非法"),
+
+
+    // 请求频繁
+    LOCK_LIMIT(41001, "请求太频繁，请稍后再试哦~"),
+
     // 系统异常
     SYSTEM_ERROR(50000, "服务器异常");
 

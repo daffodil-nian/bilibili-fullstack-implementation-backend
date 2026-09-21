@@ -75,7 +75,7 @@ public class IMServer {
                                     .addLast(new HttpServerCodec())
                                     .addLast(new ChunkedWriteHandler())
                                     .addLast(new HttpObjectAggregator(1024*64))
-//                                  todo  这是自己的业务处理器，待完成。。。
+//                                  to do  这是自己的业务处理器，待完成。。。
                                     .addLast(httpHeadersHandler)
 //                                    netty提供websocket的处理器,意思是在这个路径下都会转换升级遵循该协议，转换相关模式
                                     .addLast(new WebSocketServerProtocolHandler("/ws"))
