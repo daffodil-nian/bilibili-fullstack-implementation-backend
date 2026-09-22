@@ -369,15 +369,19 @@ public class ChatServiceImpl implements IChatService {
                 continue;
             }
             //找到同伴的uid
-            Long peerUid = Objects.equals(chatRoomFriend.getUid1(),uid)?chatRoomFriend.getUid2():chatRoomFriend.getUid1();
+            Long peerUid = Objects.equals(chatRoomFriend.getUid1(),uid)?
+                    chatRoomFriend.getUid2():chatRoomFriend.getUid1();
             //找到了同伴的uid之后，就构造ContactItemVO
+            long unreadCount = messageDao.countUnread(c.getRoomId(),uid,c.getReadTime());
+
+
             ContactItemVO vo = new ContactItemVO();
             vo.setPeerUid(peerUid);
             vo.setRoomId(c.getRoomId());
             vo.setActiveTime(c.getActiveTime());
             vo.setLastMsgId(c.getLastMsgId());
 //            vo.setPeerAvatar();
-
+            vo.setUnreadCount((int)unreadCount);
             //从chatMessage中获取最后一条消息
             if(c.getLastMsgId()!=null){
                 ChatMessage last = messageDao.getById(c.getLastMsgId());
@@ -477,8 +481,10 @@ public class ChatServiceImpl implements IChatService {
         }
         chatContact.setReadTime(LocalDateTime.now());
         chatContact.setUpdateTime(LocalDateTime.now());
+
         //之所以不更新activeTime，是因为这个只是
         contactDao.updateById(chatContact);
+        //然后
     }
 
 

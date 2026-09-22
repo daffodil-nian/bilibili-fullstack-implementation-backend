@@ -1,5 +1,6 @@
 package org.arrinna.bilibilimockbackground.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.domain.entity.user.UserLvInfo;
 import org.arrinna.bilibilimockbackground.domain.enums.ArticleSortEnum;
@@ -19,6 +20,7 @@ import org.arrinna.bilibilimockbackground.esdao.user.UserEsDao;
 import org.arrinna.bilibilimockbackground.esdao.user.UserEsSearch;
 import org.arrinna.bilibilimockbackground.service.ISearchService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +32,7 @@ import jakarta.annotation.Resource;
 
 import java.util.List;
 
+@Slf4j
 @Service
 public class SearchServiceImpl implements ISearchService {
     //todo 完善搜索关键字查看用户的功能
@@ -37,6 +40,9 @@ public class SearchServiceImpl implements ISearchService {
     //todo 数据库的模糊查询只能查连续的字符串匹配，不符合要求
 
 
+
+    @Value("${cos.client.host}")
+    private String host;
     @Resource
     private UserEsDao userEsDao;
     @Resource
@@ -155,6 +161,8 @@ public class SearchServiceImpl implements ISearchService {
 
         //2.获取是以什么样子的顺序排的顺序之后开始实现代码
 
+        log.info("当前排序类型是{}",sortEnum);
+        log.info("当前搜索关键词是{}",keyword);
         String sort_field=sortEnum.getColumn();
         Sort sort=Sort.unsorted();
         //TODO 2026年8月29日晚上暂时写到这里，明天把剩下的部分完善！！！
@@ -170,6 +178,8 @@ public class SearchServiceImpl implements ISearchService {
         //4.然后开始构造查询条件，根据keyword查询，按照顺序排序返回查询结果
         Page<ColumnEsDoc> columnEsDocs=columnEsSearch.searchColumnTitle(keyword,pageable);
 
+        //todo 2026.09.22测试发现是这个返回结果的问题
+        log.info("查询结果为{}",columnEsDocs.getContent());
         //5.接下来转成列表类型
         List<ArticleSearchVO> articleList=columnEsDocs.stream()
                 .map(columnEsDoc -> {

@@ -27,6 +27,7 @@ import org.arrinna.bilibilimockbackground.mapper.article.ArticleThumbMapper;
 import org.arrinna.bilibilimockbackground.mapper.user.UserMapper;
 import org.arrinna.bilibilimockbackground.service.IArticleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,8 @@ public class ArticleServiceImpl implements IArticleService {
 
     //1.发布专栏，返回专栏ID
 
+    @Value("${cos.client.host}")
+    private String host;
     @Resource
     private ArticleMapper articleMapper;
     @Resource
@@ -69,9 +72,12 @@ public class ArticleServiceImpl implements IArticleService {
         //2.赋值
         int status = dto.getStatus()==null?
                 ArticleStatusEnum.PUBLISHED.getCode():dto.getStatus();
+
+
+        String article_cover= host + dto.getCover();
         Article article= Article.builder()
                 .title(dto.getTitle())
-                .cover(dto.getCover())
+                .cover(article_cover)
                 .content(dto.getContent())
                 .summary(dto.getSummary())
                 .status(status)

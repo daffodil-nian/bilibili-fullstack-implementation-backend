@@ -32,10 +32,34 @@ public class MessageDao extends ServiceImpl<MessageMapper,ChatMessage> {
     public List<ChatMessage> listUnread(Long roomId, LocalDateTime afterTime, int limit) {
         return lambdaQuery()
                 .eq(ChatMessage::getRoomId, roomId)
-                .gt(afterTime != null, ChatMessage::getCreateTime, afterTime)
+                .gt(afterTime != null, ChatMessage::getCreateTime, afterTime)//这个就是比较发消息和看到这条消息的时间如果不相等就是没看
                 .orderByAsc(ChatMessage::getId)
                 .last("limit " + Math.max(1, Math.min(limit, 100)))
                 .list();
+    }
+
+    /**
+     * 未读的数量
+     * 注意，这个是给房间里不是我的用户发的
+     * @param roomId
+     * @param myUid
+     * @param readTime
+     * @return
+     */
+    public long countUnread(
+            Long roomId,Long myUid, LocalDateTime readTime
+    ){
+
+        LocalDateTime after= readTime==null?
+                LocalDateTime
+                        .of(1970,1,1,0,0,0)
+                :readTime;
+        return lambdaQuery()
+                .ne(ChatMessage::getFromUid,myUid)
+                .eq(ChatMessage::getRoomId,roomId)
+                .eq(ChatMessage::getStatus,DefaultConstant.MESSAGE_STATUS_NORMAL)
+                .gt(ChatMessage::getCreateTime,after)//now > that_time
+                .count();
     }
 
     /**
