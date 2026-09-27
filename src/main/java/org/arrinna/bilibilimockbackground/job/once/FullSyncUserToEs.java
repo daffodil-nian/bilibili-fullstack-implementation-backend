@@ -33,6 +33,7 @@ public class FullSyncUserToEs implements CommandLineRunner {
             docs.add(toDoc(u,count));
         }
         int batch = 500;
+        //分批导入
         for (int i = 0; i < docs.size(); i += batch) {
             int end = Math.min(i + batch, docs.size());
             userEsDao.saveAll(docs.subList(i, end));
@@ -44,7 +45,7 @@ public class FullSyncUserToEs implements CommandLineRunner {
     public static UserEsDoc toDoc(User u,int fansCount) {
         Long uId=u.getUId();
         UserEsDoc doc = new UserEsDoc();
-        doc.setUserId(u.getUId());
+        doc.setUserId(uId);
         doc.setNickname(u.getNickname());
         doc.setAvatar(u.getAvatar());
         doc.setSignature(u.getSignature());

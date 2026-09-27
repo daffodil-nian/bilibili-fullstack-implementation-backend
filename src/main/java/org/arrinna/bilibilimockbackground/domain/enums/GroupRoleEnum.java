@@ -1,0 +1,37 @@
+package org.arrinna.bilibilimockbackground.domain.enums;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+public enum GroupRoleEnum {
+    OWNER(1,"群主")
+
+    ;
+    private Integer code;
+    private String desc;
+
+//    然后写一个kv键
+    private static final Map<Integer,GroupRoleEnum> CACHE;
+
+    static {
+        CACHE = Arrays.stream(values())
+                .collect(Collectors.toMap(
+                        GroupRoleEnum::getCode, Function.identity()
+                ));
+    }
+
+    public static GroupRoleEnum of(Integer code){
+        return CACHE.get(code);
+    }
+
+}

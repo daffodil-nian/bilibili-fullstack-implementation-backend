@@ -62,6 +62,13 @@ public enum ErrorCodeEnum {
     RECALL_SESSION_INVALID(13006, "会话不存在或已禁用"),
     RECALL_GROUP_UNSUPPORTED(13007, "群聊撤回暂未开放"),
 
+    //=========== 群聊模块 ===========
+    GROUP_ROOM_DISMISSED(13101,"群房间被解散"),
+    GROUP_ROOM_NOT_FOUND(13102,"群房间不存在"),
+    GROUP_MUTED_ALL(13103,"当前群已开启全体禁言"),
+    GROUP_MUTED_MEMBER(13104,"你已被禁言，暂时无法发言"),
+    GROUP_NOT_MEMBER(13105,"你不在群中，无法发送消息！"),
+
     // ErrorCodeEnum
     EMOTICON_NOT_FOUND(14001, "表情不存在"),
     EMOTICON_OFF_SHELF(14002, "表情包已下架"),

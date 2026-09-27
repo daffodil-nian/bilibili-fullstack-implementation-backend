@@ -7,22 +7,18 @@ import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
 import org.arrinna.bilibilimockbackground.common.util.CosUtil;
-import org.arrinna.bilibilimockbackground.dao.chat.ContactDao;
-import org.arrinna.bilibilimockbackground.dao.chat.MessageDao;
-import org.arrinna.bilibilimockbackground.dao.chat.RoomDao;
-import org.arrinna.bilibilimockbackground.dao.chat.RoomFriendDao;
+import org.arrinna.bilibilimockbackground.dao.chat.*;
 import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
-import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatContact;
-import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatMessage;
-import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoom;
-import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatRoomFriend;
+import org.arrinna.bilibilimockbackground.domain.entity.chat.*;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.RoomTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
 import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
 import org.arrinna.bilibilimockbackground.im.push.ImPushGateway;
+import org.arrinna.bilibilimockbackground.mapper.chat.RoomGroupMapper;
 import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,15 +40,21 @@ public class ChatServiceImpl implements IChatService {
     @Resource
     private RoomFriendDao roomFriendDao;
     @Resource
+    private RoomGroupDao roomGroupDao;
+    @Resource
     private ContactDao contactDao;
     @Resource
     private MessageDao messageDao;
+    @Resource
+    private GroupMemberDao groupMemberDao;
     @Autowired
     private UserFollowDao userFollowDao;
     @Resource
     private ImPushGateway imPushGateway;
     @Resource
     private CosUtil cosUtil;
+    @Autowired
+    private RoomGroupMapper roomGroupMapper;
 
     /**
      * 关注一个人就会收到他的自动回复，关注之后要先判断是否是互关，
@@ -565,5 +567,64 @@ public class ChatServiceImpl implements IChatService {
     }
 
     //接下来增加表情包管理的功能，可以自定义增加表情包
+
+
+    /**
+     * 群聊发文本
+     *顺序应该如下：
+     * 先检验chat_room这张表中roomId房间的状态，如果OK往下走
+     * 然后判断chat_room_group,单独整了这张数据库表，可以用来查看group群聊的详细信息
+     * 接下来查看chat_group_member:这张表中存了group_id,uid,role等信息，
+     * 可以跟据group.id和uid查询到某个群里的每个成员的一个职位
+     *
+     * 可以查看是否退群，是否被禁言之类的，如果都通过了就校验内容格式，通过就写入到数据库中去
+     * @param fromUid
+     * @param roomId
+     * @param content
+     */
+    public Long sendGroupText(Long fromUid,Long roomId,String content){
+        //0.先校验参数是否合法,返回的是消息的
+        if(fromUid==null||roomId==null||content==null||content.isBlank()){
+            return null;
+        }
+
+        String text = content.trim();
+        //1.chat_room
+        ChatRoom chatRoom = roomDao.getById(roomId);
+        AssertUtil.isFalse(chatRoom==null,ErrorCodeEnum.GROUP_ROOM_NOT_FOUND);
+        //如果是单聊房也是搜索不出来的！
+        AssertUtil.isFalse(!Objects.equals(chatRoom.getType(), RoomTypeEnum.GROUP.getType())
+        ,ErrorCodeEnum.GROUP_ROOM_NOT_FOUND
+        );
+        AssertUtil.isFalse(Objects.equals(chatRoom.getStatus(),DefaultConstant.ROOM_STATUS_FORBIDDEN)
+        ,ErrorCodeEnum.GROUP_ROOM_NOT_FOUND);
+
+
+
+        // 2. chat_room_group：无资料 / 已解散
+        ChatRoomGroup groupInfo = roomGroupDao.
+                getByRoomId(roomId);
+
+        //1.判断fromUid是否在群聊，如果被踢出去是不可以发消息的
+        ChatGroupMember chatGroupMember = groupMemberDao.
+                getByRoomIdAndUid(fromUid,roomId);
+        if(chatGroupMember==null){
+            //不在群聊就抛出异常
+        }
+
+        //2.判断群是否被解散了，如果群解散了消息也是发不出去
+        ChatRoom room = roomDao.getById(roomId);
+        if(room==null||room.getStatus()==DefaultConstant.ROOM_STATUS_FORBIDDEN){
+            //群也用不了了
+        }
+
+        //3.判断fromUid是否是管理员，如果是管理员就加上对应的一个标识
+
+        //4.判断fromUid是否被禁言了，禁言几分钟，这些数据都要知道的
+
+        //5.
+
+        return null;
+    }
 
 }

@@ -43,6 +43,10 @@ public interface DefaultConstant {
 
     int ROOM_FRIEND_STATUS_FORBIDDEN= 1;//房间好友被禁用
 
+    int ROOM_GROUP_STATUS_NORMAL= 0;//房间群组默认状态
+
+    int ROOM_GROUP_STATUS_DELETED= 1;//房间群组被删除
+
     String DEFAULT_AUTO_RESPONSE="我们已互相关注，开始聊天吧~";
 
     String DEFAULT_SINGLE_RESPONSE="我关注了你~";
