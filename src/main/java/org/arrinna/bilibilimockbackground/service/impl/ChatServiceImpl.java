@@ -12,6 +12,7 @@ import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.*;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
+import org.arrinna.bilibilimockbackground.domain.enums.GroupRoleEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.RoomTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
@@ -201,10 +202,10 @@ public class ChatServiceImpl implements IChatService {
         roomFriendDao.updateById(chatRoomFriend);
     }
 
-    public Boolean createGroupSession(int type){
-
-        return null;
-    }
+//    public Boolean createGroupSession(int type){
+//
+//        return null;
+//    }
 
     /**
      * 这个是确保用户有联系记录
@@ -605,18 +606,25 @@ public class ChatServiceImpl implements IChatService {
         ChatRoomGroup groupInfo = roomGroupDao.
                 getByRoomId(roomId);
 
-        //1.判断fromUid是否在群聊，如果被踢出去是不可以发消息的
+        boolean groupUnavailable = groupInfo == null
+                || Objects.equals(groupInfo.getDeleteStatus(), DefaultConstant.ROOM_GROUP_STATUS_DELETED);
+        AssertUtil.isFalse(groupUnavailable, ErrorCodeEnum.GROUP_ROOM_DISMISSED);
+
+
+
+
+        //3.接下来判断chat_group_member：在这张表中可以判断一个用户是否被踢出去，看role和status字段
+
         ChatGroupMember chatGroupMember = groupMemberDao.
                 getByRoomIdAndUid(fromUid,roomId);
-        if(chatGroupMember==null){
-            //不在群聊就抛出异常
-        }
+        boolean groupMemberStatus=chatGroupMember==null;
 
-        //2.判断群是否被解散了，如果群解散了消息也是发不出去
-        ChatRoom room = roomDao.getById(roomId);
-        if(room==null||room.getStatus()==DefaultConstant.ROOM_STATUS_FORBIDDEN){
-            //群也用不了了
-        }
+        AssertUtil.isFalse(groupMemberStatus||chatGroupMember.getStatus()==3,ErrorCodeEnum.GROUP_NOT_MEMBER);
+        //如果被禁言并且不是管理员就不让发言
+        AssertUtil.isFalse(chatGroupMember.getStatus()==2&&chatGroupMember.getRole()==3,ErrorCodeEnum.GROUP_MUTED_MEMBER);
+
+
+
 
         //3.判断fromUid是否是管理员，如果是管理员就加上对应的一个标识
 
@@ -625,6 +633,87 @@ public class ChatServiceImpl implements IChatService {
         //5.
 
         return null;
+    }
+
+//    @Transactional(rollbackFor = Exception.class)
+    private Long createGroupSession(Long ownerUid,String name,List<Long> uids){
+        //1.1检验参数
+        AssertUtil.isFalse(ownerUid==null||name==null||uids==null,ErrorCodeEnum.PARAM_ERROR);
+
+        //1.2检验uids中的人数是否够，不够也要抛出异常
+        // 邀请人：去重、去掉空、去掉群主自己
+        List<Long> invitees = uids.stream()
+                .filter(Objects::nonNull)
+                .filter(id -> !id.equals(ownerUid))
+                .distinct()
+                .toList();
+        AssertUtil.isFalse(invitees.size()<2,ErrorCodeEnum.GROUP_MEMBER_FEW);
+
+        int total = invitees.size() + 1; // +群主
+        AssertUtil.isFalse(total > DefaultConstant.GROUP_MAX_MEMBERS_FREE, ErrorCodeEnum.GROUP_SIZE_EXCEED);
+        //1.3 然后看看自己创建的群聊是否很多,调用dao层
+        AssertUtil.isFalse(roomGroupDao.countCreatedByOwner(ownerUid)>=
+                DefaultConstant.GROUP_MAX_CREATE_PER_USER,ErrorCodeEnum.GROUP_CREATED_MANY);
+
+
+        //2.1然后就可以创建群聊了，
+
+        ChatRoom room=roomDao.initRoom(RoomTypeEnum.GROUP.getType());
+        roomDao.save(room);
+        Long roomId=room.getId();
+
+        //2.2然后创建群信息表
+        ChatRoomGroup group = new ChatRoomGroup();
+        group.setRoomId(roomId);
+        group.setName(name);
+        group.setOwnerUid(ownerUid);
+        group.setDeleteStatus(DefaultConstant.ROOM_GROUP_STATUS_NORMAL);
+        group.setCreateTime(LocalDateTime.now());
+        group.setUpdateTime(LocalDateTime.now());
+        roomGroupDao.save(group);
+        Long groupId = group.getId();
+        // 2.3 群主 + 邀请的人 全部入群、全部有会话
+        LocalDateTime now = LocalDateTime.now();
+        List<ChatGroupMember> members = new ArrayList<>();
+        //2.3然后就添加群成员
+        ChatGroupMember owner = new ChatGroupMember();
+        owner.setGroupId(group.getId());
+        owner.setUid(ownerUid);
+        owner.setRole(GroupRoleEnum.OWNER.getCode());
+        owner.setStatus(1);
+        owner.setCreateTime(LocalDateTime.now());
+        owner.setUpdateTime(LocalDateTime.now());
+
+        members.add(owner);
+        for (Long uid : invitees) {
+            ChatGroupMember m = new ChatGroupMember();
+            m.setGroupId(groupId);
+            m.setUid(uid);
+            m.setRole(GroupRoleEnum.MEMBER.getCode());
+            m.setStatus(1); // 在群
+            m.setCreateTime(now);
+            m.setUpdateTime(now);
+            members.add(m);
+        }
+        groupMemberDao.saveBatch(members);
+
+        ensureContact(ownerUid, roomId);
+        for (Long uid : invitees) {
+            ensureContact(uid, roomId);
+        }
+        Long msgId = insertTextMessage(ownerUid, roomId, "群聊已创建");
+        ChatRoom chatRoom = roomDao.getById(roomId);
+        if (chatRoom != null) {
+            chatRoom.setLastMsgId(msgId);
+            chatRoom.setActiveTime(LocalDateTime.now());
+            chatRoom.setUpdateTime(LocalDateTime.now());
+            roomDao.updateById(chatRoom);
+        }
+        touchContactLastMsg(ownerUid, roomId, msgId);
+        for (Long uid : invitees) {
+            touchContactLastMsg(uid, roomId, msgId);
+        }
+        return roomId;
     }
 
 }

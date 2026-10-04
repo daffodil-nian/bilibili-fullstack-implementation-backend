@@ -29,6 +29,11 @@ public class ChatGroupMember {
      */
     private Integer role;
 
+    /**
+     * 1.在群里，2.被禁言，3被移出去
+     */
+    private Integer status;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

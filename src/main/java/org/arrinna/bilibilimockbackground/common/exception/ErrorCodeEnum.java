@@ -68,6 +68,10 @@ public enum ErrorCodeEnum {
     GROUP_MUTED_ALL(13103,"当前群已开启全体禁言"),
     GROUP_MUTED_MEMBER(13104,"你已被禁言，暂时无法发言"),
     GROUP_NOT_MEMBER(13105,"你不在群中，无法发送消息！"),
+    GROUP_SIZE_EXCEED(13106,"群聊人数已达到上限！如果想要扩容请升级噢！"),
+    GROUP_MEMBER_FEW(13107,"创建群聊至少需要3个人！"),
+    GROUP_CREATED_MANY(13108,"您创建的群聊超过10个，太多了噢！"),
+
 
     // ErrorCodeEnum
     EMOTICON_NOT_FOUND(14001, "表情不存在"),

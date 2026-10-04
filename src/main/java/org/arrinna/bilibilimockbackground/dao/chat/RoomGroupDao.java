@@ -21,4 +21,19 @@ public class RoomGroupDao extends ServiceImpl<RoomGroupMapper, ChatRoomGroup> {
                 .one();
     }
 
+
+    /**
+     * 获取用户创建群聊的数量
+     * @param ownerUid
+     * @return
+     */
+    public long countCreatedByOwner(Long ownerUid){
+        return lambdaQuery()
+                .eq(ChatRoomGroup::getOwnerUid,ownerUid)
+                .eq(ChatRoomGroup::getDeleteStatus,
+                        DefaultConstant.ROOM_GROUP_STATUS_NORMAL)
+                .count()
+                ;
+    }
+
 }

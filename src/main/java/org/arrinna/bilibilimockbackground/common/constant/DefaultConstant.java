@@ -65,6 +65,10 @@ public interface DefaultConstant {
     long MAX_EMOTICON_SIZE=1*1024*1024l;
 
 
+    int GROUP_MAX_CREATE_PER_USER = 10;
+
+    int GROUP_MAX_MEMBERS_FREE = 100;
+
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;
