@@ -28,8 +28,4 @@ public class RoomDao extends ServiceImpl<RoomMapper, ChatRoom> {
                 .build();
     }
 
-    /**
-     * 从room这张表中获取
-     */
-
 }

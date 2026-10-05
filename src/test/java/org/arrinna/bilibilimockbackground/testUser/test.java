@@ -6,10 +6,12 @@ import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UserPrivacyReq;
 import org.arrinna.bilibilimockbackground.domain.vo.user.UserSimpleVO;
 import org.arrinna.bilibilimockbackground.domain.vo.user.UserSpaceVO;
+import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -19,6 +21,8 @@ public class test {
     private UserFollowDao userFollowDao;
     @Resource
     private IUserService userService;
+    @Resource
+    private IChatService chatService;
 
     /**
      * 关注接口测试完毕
@@ -71,4 +75,18 @@ public class test {
 
         log.info(userSpaceVO.toString());
     }
+
+    /**
+     * 测试完毕，创建房间功能没问题，那看看能不能反复创建这个群呢？可以反复创建这个群
+     */
+    @Test
+    public void test_chatService(){
+        //1.首先
+        List<Long> uidList = List.of(4L,5L);
+        Long roomId=chatService.createGroupSession(6L,"测试群",uidList);
+        log.info("您好~您的房间号为{}",roomId);
+
+    }
+
+
 }

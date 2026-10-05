@@ -8,19 +8,34 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+
 @Service
 public class RoomGroupDao extends ServiceImpl<RoomGroupMapper, ChatRoomGroup> {
 
 //    写一个dao层的写法，跟据roomId获取room信息
 
     public ChatRoomGroup getByRoomId(Long roomId){
-
         return lambdaQuery()
                 .eq(ChatRoomGroup::getRoomId,roomId)
-                .eq(ChatRoomGroup::getDeleteStatus, DefaultConstant.ROOM_GROUP_STATUS_DELETED)
+                .eq(ChatRoomGroup::getDeleteStatus, DefaultConstant.ROOM_GROUP_STATUS_NORMAL)
                 .one();
     }
 
+    /**
+     * 根据roomIds一次性获取所有房间的信息
+     * @param roomIds
+     * @return
+     */
+    public List<ChatRoomGroup> listByRoomIds(List<Long> roomIds){
+        if(roomIds.isEmpty()||roomIds==null){
+            return List.of();
+        }
+        return lambdaQuery()
+                .in(ChatRoomGroup::getRoomId,roomIds)
+                .eq(ChatRoomGroup::getDeleteStatus,
+                        DefaultConstant.ROOM_GROUP_STATUS_NORMAL)
+                .list();
+    }
 
     /**
      * 获取用户创建群聊的数量

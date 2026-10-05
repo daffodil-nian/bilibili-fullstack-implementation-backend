@@ -341,48 +341,44 @@ public class ChatServiceImpl implements IChatService {
                 .toList();
 
         //只要在这个房间的friends都可以过来
-        List<ChatRoomFriend> friends = roomFriendDao.getByRoomIds(roomIds);
+//        List<ChatRoomFriend> friends = roomFriendDao.getByRoomIds(roomIds);
 
+        Map<Long,ChatRoom> roomMap=roomDao.listByIds(roomIds)
+                .stream()
+                .collect(
+                        Collectors.toMap(ChatRoom::getId,Function.identity()))
+                ;
 
         //然后待会就可以筛选出来,跟据roomId映射
-        Map<Long,ChatRoomFriend> friendMap=friends
+        Map<Long,ChatRoomFriend> friendMap=roomFriendDao.getByRoomIds(roomIds)
                 .stream().
                 collect(Collectors.toMap(ChatRoomFriend::getRoomId, Function.identity()));
 
+        Map<Long,ChatRoomGroup> groupMap= roomGroupDao.listByRoomIds(roomIds)
+                .stream()
+                .collect(Collectors.toMap(ChatRoomGroup::getRoomId,Function.identity()))
+                ;
         //然后接下来就是根据friend之间的关系进一步筛选
 
         //3.接下来就是准备返回给前端的list
         List<ContactItemVO> result = new ArrayList<>();
-
-
         Set<Long> peerUidSet = new HashSet<>();
         Set<Long> lastMsgIdSet = new HashSet<>();
 
-
-
-        //4.接下来就是把
+        //4.
         for(ChatContact c:contacts){
             //一条数据代表着一条和别人的记录
-            ChatRoomFriend chatRoomFriend = roomFriendDao.getByRoomId(c.getRoomId());
-            if(chatRoomFriend==null){
-                continue;
-                //如果没有就跳过
-            }
-            if(Objects.equals(chatRoomFriend.getStatus(),DefaultConstant.ROOM_FRIEND_STATUS_FORBIDDEN)){
-                continue;
-            }
-            //找到同伴的uid
-            Long peerUid = Objects.equals(chatRoomFriend.getUid1(),uid)?
-                    chatRoomFriend.getUid2():chatRoomFriend.getUid1();
-            //找到了同伴的uid之后，就构造ContactItemVO
+            ChatRoom room = roomMap.get(c.getRoomId());
+            if(room==null||Objects.equals(room.getStatus(),
+                    DefaultConstant.ROOM_STATUS_FORBIDDEN)) continue;
             long unreadCount = messageDao.countUnread(c.getRoomId(),uid,c.getReadTime());
-
-
+//
             ContactItemVO vo = new ContactItemVO();
-            vo.setPeerUid(peerUid);
+//            vo.setPeerUid(peerUid);
             vo.setRoomId(c.getRoomId());
             vo.setActiveTime(c.getActiveTime());
             vo.setLastMsgId(c.getLastMsgId());
+            vo.setRoomType(room.getType());
 //            vo.setPeerAvatar();
             vo.setUnreadCount((int)unreadCount);
             //从chatMessage中获取最后一条消息
@@ -391,21 +387,45 @@ public class ChatServiceImpl implements IChatService {
                 if(last!=null)
                     vo.setLastContent(last.getContent());
             }
-            if(peerUid!=null){
-                peerUidSet.add(peerUid);
+
+            if(Objects.equals(room.getType(),RoomTypeEnum.FRIEND.getType())){
+                ChatRoomFriend friend=friendMap.get(c.getRoomId());
+                if (friend == null
+                        || Objects.equals(friend.getStatus(), DefaultConstant.ROOM_FRIEND_STATUS_FORBIDDEN)) {
+                    continue;
+                }
+                Long peerUid = Objects.equals(friend.getUid1(),uid)?friend.getUid2():friend.getUid1();
+                vo.setPeerUid(peerUid);
+                if(peerUid!=null){
+                    peerUidSet.add(peerUid);
+                }
             }
+
+            else if(Objects.equals(room.getType(),RoomTypeEnum.GROUP.getType())){
+                ChatRoomGroup chatRoomGroup = groupMap.get(c.getRoomId());
+                if(chatRoomGroup==null){
+                    continue;
+                }
+                vo.setName(chatRoomGroup.getName());
+                vo.setAvatar(chatRoomGroup.getAvatar()==null?null:
+                        cosUtil.toFullUrl(chatRoomGroup.getAvatar()));
+
+            }
+            else{
+                continue;
+            }
+
             result.add(vo);
         }
 
-        //
+        //然后构造完毕
+
         Map<Long, User> userMap=Map.of();
         if(!peerUidSet.isEmpty()){
             List<User> users = userDao.listByIds(peerUidSet);
             //然后匹配 ！
             userMap = users.stream()
                     .collect(Collectors.toMap(User::getUId, u->u,(a,b)->a));
-
-
         }
 
         Map<Long,ChatMessage> msgMap = Map.of();
@@ -415,10 +435,14 @@ public class ChatServiceImpl implements IChatService {
                     .collect (Collectors.toMap (ChatMessage::getId, m -> m, (a, b) -> a));
         }
         for (ContactItemVO vo : result) {
-            User u = userMap.get (vo.getPeerUid ());
-            if (u != null) {
-                vo.setPeerNickname (u.getNickname ());
-                vo.setPeerAvatar (cosUtil.toFullUrl (u.getAvatar ())); // 相对路径 → 完整 URL
+
+            if (vo.getPeerUid()!=null) {
+                User u = userMap.get (vo.getPeerUid ());
+                if(u!=null){
+                    vo.setName (u.getNickname ());
+                    vo.setAvatar (cosUtil.toFullUrl (u.getAvatar ()));
+                }
+
             }
             if (vo.getLastMsgId () != null) {
                 ChatMessage last = msgMap.get (vo.getLastMsgId ());
@@ -455,6 +479,16 @@ public class ChatServiceImpl implements IChatService {
         Collections.reverse(list);//然后让记录反过来
 //        ChatMessageVO vo= new ChatMessageVO();
 
+        Set<Long> fromUids = list.stream()
+                .map(ChatMessage::getFromUid)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, User> userMap = Map.of();
+        if (!fromUids.isEmpty()) {
+            userMap = userDao.listByIds(fromUids).stream()
+                    .collect(Collectors.toMap(User::getUId, u -> u, (a, b) -> a));
+        }
+        Map<Long, User> finalUserMap = userMap;
         return list.stream()
                 .map(m->{
                     ChatMessageVO vo = new ChatMessageVO();
@@ -465,6 +499,11 @@ public class ChatServiceImpl implements IChatService {
                     vo.setFromUid(m.getFromUid());
                     vo.setContent(m.getContent());
 //                    vo.setFromAvatar(m.get);
+                    User u =finalUserMap.get(m.getFromUid());
+                    if (u != null) {
+                        vo.setFromAvatar(cosUtil.toFullUrl(u.getAvatar()));
+                        vo.setFromNickname(u.getNickname());
+                    }
                     return vo;
                 })
                 .collect(Collectors.toList());
@@ -583,60 +622,72 @@ public class ChatServiceImpl implements IChatService {
      * @param roomId
      * @param content
      */
-    public Long sendGroupText(Long fromUid,Long roomId,String content){
+    @Override
+    public Long sendGroupText(Long fromUid, Long roomId, String content){
         //0.先校验参数是否合法,返回的是消息的
         if(fromUid==null||roomId==null||content==null||content.isBlank()){
             return null;
         }
 
         String text = content.trim();
+
         //1.chat_room
         ChatRoom chatRoom = roomDao.getById(roomId);
         AssertUtil.isFalse(chatRoom==null,ErrorCodeEnum.GROUP_ROOM_NOT_FOUND);
-        //如果是单聊房也是搜索不出来的！
         AssertUtil.isFalse(!Objects.equals(chatRoom.getType(), RoomTypeEnum.GROUP.getType())
         ,ErrorCodeEnum.GROUP_ROOM_NOT_FOUND
         );
         AssertUtil.isFalse(Objects.equals(chatRoom.getStatus(),DefaultConstant.ROOM_STATUS_FORBIDDEN)
         ,ErrorCodeEnum.GROUP_ROOM_NOT_FOUND);
 
-
-
         // 2. chat_room_group：无资料 / 已解散
-        ChatRoomGroup groupInfo = roomGroupDao.
-                getByRoomId(roomId);
-
+        ChatRoomGroup groupInfo = roomGroupDao.getByRoomId(roomId);
         boolean groupUnavailable = groupInfo == null
                 || Objects.equals(groupInfo.getDeleteStatus(), DefaultConstant.ROOM_GROUP_STATUS_DELETED);
         AssertUtil.isFalse(groupUnavailable, ErrorCodeEnum.GROUP_ROOM_DISMISSED);
 
 
-
-
         //3.接下来判断chat_group_member：在这张表中可以判断一个用户是否被踢出去，看role和status字段
-
-        ChatGroupMember chatGroupMember = groupMemberDao.
-                getByRoomIdAndUid(fromUid,roomId);
+        ChatGroupMember chatGroupMember = groupMemberDao.getByRoomIdAndUid(fromUid,groupInfo.getId());
         boolean groupMemberStatus=chatGroupMember==null;
-
-        AssertUtil.isFalse(groupMemberStatus||chatGroupMember.getStatus()==3,ErrorCodeEnum.GROUP_NOT_MEMBER);
+        AssertUtil.isFalse(groupMemberStatus||chatGroupMember.getStatus()==3
+                ,ErrorCodeEnum.GROUP_NOT_MEMBER);
         //如果被禁言并且不是管理员就不让发言
         AssertUtil.isFalse(chatGroupMember.getStatus()==2&&chatGroupMember.getRole()==3,ErrorCodeEnum.GROUP_MUTED_MEMBER);
 
+        Long msgId = insertTextMessage(fromUid,roomId,text);
+
+        List<Long> memberUids = groupMemberDao.listActiveUids(groupInfo.getId());
 
 
-
-        //3.判断fromUid是否是管理员，如果是管理员就加上对应的一个标识
-
-        //4.判断fromUid是否被禁言了，禁言几分钟，这些数据都要知道的
-
-        //5.
-
-        return null;
+        for (Long id : memberUids) {
+            ensureContact(id, roomId);
+            touchContactLastMsg(id, roomId, msgId);
+        }
+        ChatRoom toUpdate = roomDao.getById(roomId);
+        if (toUpdate != null) {
+            toUpdate.setLastMsgId(msgId);
+            toUpdate.setActiveTime(LocalDateTime.now());
+            toUpdate.setUpdateTime(LocalDateTime.now());
+            roomDao.updateById(toUpdate);
+        }
+        List<Long> pushUids = memberUids.stream()
+                .filter(id -> !id.equals(fromUid))
+                .toList();
+        String payload = JSONUtil.createObj()
+                .set("type", WsPushTypeEnum.CHAT_MSG.getCode())
+                .set("msgId", msgId)
+                .set("roomId", roomId)
+                .set("fromUid", fromUid)
+                .set("content", text)
+                .toString();
+        imPushGateway.pushToUser(pushUids, payload);
+        return msgId;
     }
 
-//    @Transactional(rollbackFor = Exception.class)
-    private Long createGroupSession(Long ownerUid,String name,List<Long> uids){
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Long createGroupSession(Long ownerUid, String name, List<Long> uids){
         //1.1检验参数
         AssertUtil.isFalse(ownerUid==null||name==null||uids==null,ErrorCodeEnum.PARAM_ERROR);
 
@@ -651,6 +702,11 @@ public class ChatServiceImpl implements IChatService {
 
         int total = invitees.size() + 1; // +群主
         AssertUtil.isFalse(total > DefaultConstant.GROUP_MAX_MEMBERS_FREE, ErrorCodeEnum.GROUP_SIZE_EXCEED);
+
+        // 1.2 之后、1.3 之前或之后都行
+        List<Long> notFans = userFollowDao.filterNotFans(ownerUid, invitees);
+        AssertUtil.isFalse(!notFans.isEmpty(), ErrorCodeEnum.GROUP_MEMBER_NOT_FAN);
+
         //1.3 然后看看自己创建的群聊是否很多,调用dao层
         AssertUtil.isFalse(roomGroupDao.countCreatedByOwner(ownerUid)>=
                 DefaultConstant.GROUP_MAX_CREATE_PER_USER,ErrorCodeEnum.GROUP_CREATED_MANY);
@@ -686,6 +742,8 @@ public class ChatServiceImpl implements IChatService {
 
         members.add(owner);
         for (Long uid : invitees) {
+//            ChatContact contact=contactDao.getByUidAndRoomId(viewerUid,chatRoomFriend.getRoomId());
+
             ChatGroupMember m = new ChatGroupMember();
             m.setGroupId(groupId);
             m.setUid(uid);
@@ -697,6 +755,7 @@ public class ChatServiceImpl implements IChatService {
         }
         groupMemberDao.saveBatch(members);
 
+        //添加到联系表中！
         ensureContact(ownerUid, roomId);
         for (Long uid : invitees) {
             ensureContact(uid, roomId);

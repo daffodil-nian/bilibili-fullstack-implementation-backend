@@ -20,4 +20,9 @@ public interface IChatService {
     List<ChatMessageVO> listMessages(Long uid, Long roomId, int limit);
 
     void markRead(Long uid, Long roomId);
+
+    Long sendGroupText(Long fromUid, Long roomId, String content);
+
+    //    @Transactional(rollbackFor = Exception.class)
+    Long createGroupSession(Long ownerUid, String name, List<Long> uids);
 }

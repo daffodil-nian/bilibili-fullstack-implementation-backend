@@ -71,7 +71,7 @@ public enum ErrorCodeEnum {
     GROUP_SIZE_EXCEED(13106,"群聊人数已达到上限！如果想要扩容请升级噢！"),
     GROUP_MEMBER_FEW(13107,"创建群聊至少需要3个人！"),
     GROUP_CREATED_MANY(13108,"您创建的群聊超过10个，太多了噢！"),
-
+    GROUP_MEMBER_NOT_FAN(13109, "只能邀请自己的粉丝进群！"),
 
     // ErrorCodeEnum
     EMOTICON_NOT_FOUND(14001, "表情不存在"),

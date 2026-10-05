@@ -2,6 +2,7 @@ package org.arrinna.bilibilimockbackground.controller;
 
 import jakarta.annotation.Resource;
 import org.arrinna.bilibilimockbackground.common.Result;
+import org.arrinna.bilibilimockbackground.domain.vo.request.CreateGroupReq;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
 import org.arrinna.bilibilimockbackground.service.IChatService;
@@ -69,6 +70,32 @@ public class ChatController {
         Long msgId = chatService.sendText(uid, targetUid, content);
         if (msgId == null) {
             return Result.fail("发送失败（无会话/内容为空/会话禁用等）");
+        }
+        return Result.Success(msgId, "ok");
+    }
+
+    @PostMapping("/group/create")
+    public Result<Long> createGroup(
+            @RequestAttribute("uid") Long uid,
+            @RequestBody CreateGroupReq req) {
+        Long roomId = chatService.createGroupSession(uid, req.getName(), req.getMemberUids());
+        if (roomId == null) {
+            return Result.fail("建群失败");
+        }
+        return Result.Success(roomId, "ok");
+    }
+    @PostMapping("/send/group/text")
+    public Result<Long> sendGroupText(
+            @RequestAttribute("uid") Long uid,
+            @RequestBody Map<String, Object> body) {
+        if (body.get("roomId") == null) {
+            return Result.fail("roomId 不能为空");
+        }
+        Long roomId = Long.valueOf(body.get("roomId").toString());
+        String content = body.get("content") == null ? null : body.get("content").toString();
+        Long msgId = chatService.sendGroupText(uid, roomId, content);
+        if (msgId == null) {
+            return Result.fail("发送失败");
         }
         return Result.Success(msgId, "ok");
     }

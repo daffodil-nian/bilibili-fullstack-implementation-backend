@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UserFollowDao extends ServiceImpl<UserFollowMapper, UserFollow> {
@@ -140,6 +141,25 @@ public class UserFollowDao extends ServiceImpl<UserFollowMapper, UserFollow> {
                 .eq(UserFollow::getFollowId,targetUid)
                 .eq(UserFollow::getStatus,DefaultConstant.FOLLOWING)
                 .count()>0;
+    }
+
+    /** targetUid 的粉丝：对方关注了 targetUid */
+    public boolean isFanOf(Long fanUid, Long targetUid) {
+        if (fanUid == null || targetUid == null) {
+            return false;
+        }
+        // fanUid 关注了 targetUid → fanUid 是 targetUid 的粉丝
+        return isFollowing(fanUid, targetUid);
+    }
+
+    /** 返回 invitees 里「不是我粉丝」的 uid */
+    public List<Long> filterNotFans(Long ownerUid, List<Long> invitees) {
+        if (invitees == null || invitees.isEmpty()) {
+            return List.of();
+        }
+        return invitees.stream()
+                .filter(uid -> !isFanOf(uid, ownerUid))
+                .toList();
     }
 
 }
