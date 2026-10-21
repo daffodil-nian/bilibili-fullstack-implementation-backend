@@ -33,6 +33,9 @@ public class ChatRoomGroup {
      */
     private Long ownerUid;
 
+
+    private String notice;
+
     /**
      * 0正常 1解散/删除
      */

@@ -2,11 +2,16 @@ package org.arrinna.bilibilimockbackground.controller;
 
 import jakarta.annotation.Resource;
 import org.arrinna.bilibilimockbackground.common.Result;
+import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.CreateGroupReq;
+import org.arrinna.bilibilimockbackground.domain.vo.request.UpdateGroupNameReq;
+import org.arrinna.bilibilimockbackground.domain.vo.request.UpdateGroupNoticeReq;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
+import org.arrinna.bilibilimockbackground.domain.vo.response.GroupInfoVO;
 import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +43,28 @@ public class ChatController {
     ){
 
         return Result.Success(chatService.listMessages(uid, roomId, limit));
+    }
+
+    /**
+     * todo 待完善ing
+     * 撤回消息，MVP版
+     * @param uid
+     * @param body
+     * @return
+     */
+    @PostMapping("/withdraw")
+    public Result<Void> withdraw(
+            @RequestAttribute("uid") Long uid,
+            @RequestBody Map<String,Object> body
+    ){
+        if(body.get("messageId")==null){
+            //todo 抛出异常，如果要撤回messageId为空就撤回不了
+        }
+        //todo 然后判断这个房间状态，如果房间被关撤回不了
+
+        
+        //todo 接着就是判断撤回方是谁，是发消息的本人不，还是管理员
+        return Result.Success();
     }
 
     /**
@@ -99,4 +126,66 @@ public class ChatController {
         }
         return Result.Success(msgId, "ok");
     }
+
+    /**
+     * 群资料
+     * GET /api/chat/group/{roomId}
+     */
+    @GetMapping("/group/{roomId}")
+    public Result<GroupInfoVO> groupInfo(@RequestAttribute("uid") Long uid,
+                                         @PathVariable Long roomId) {
+        GroupInfoVO vo = chatService.groupInfo(uid, roomId);
+        if (vo == null) {
+            return Result.fail("群不存在或你不是群成员");
+        }
+        return Result.Success(vo, "查询成功！请即时接收！");
+    }
+
+    @GetMapping("/group/{roomId}/members")
+    public Result<List<GroupMemberVO>> groupMembers(
+
+            @RequestAttribute("uid") Long uid,
+            @PathVariable Long roomId
+    ){
+        List<GroupMemberVO> list = chatService.listGroupMembers(uid,roomId);
+        if(list==null){
+            return Result.fail(404,"群不存在或你不是群成员");
+        }
+        return Result.Success(list,"查询成功！请即时接收！");
+    }
+
+    //finished!
+    @PutMapping("/group/avatar/update")
+    public Result<String> updateGroupAvatar(
+            @RequestAttribute("uid") Long uid,
+            @RequestParam("roomId") Long roomId,
+            @RequestParam("file") MultipartFile file
+    ){
+        String url = chatService.updateGroupAvatar(uid,roomId,file);
+        return Result.Success(url,"更新群头像成功！");
+    }
+
+    @PutMapping("/group/{roomId}/name")
+    public Result<Boolean> updateGroupName(
+            @RequestAttribute("uid") Long uid,
+            @PathVariable Long roomId,
+            @RequestBody UpdateGroupNameReq req
+    ){
+        String name = req.getName();
+        Boolean res = chatService.updateGroupName(uid,roomId,name);
+        return Result.Success(res,"更新群名成功！");
+    }
+
+    @PutMapping("/group/{roomId}/notice")
+    public Result<Boolean> updateGroupNotice(
+            @RequestAttribute("uid") Long uid,
+            @PathVariable Long roomId,
+            @RequestBody UpdateGroupNoticeReq req
+    ){
+        String notice = req.getNotice();
+        Boolean res = chatService.updateGroupNotice(uid,roomId,notice);
+        return Result.Success(res,"更新群公告成功！");
+    }
+
+
 }

@@ -3,10 +3,12 @@ package org.arrinna.bilibilimockbackground.service.impl;
 import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.arrinna.bilibilimockbackground.common.constant.COSFilePrefix;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
 import org.arrinna.bilibilimockbackground.common.util.CosUtil;
+import org.arrinna.bilibilimockbackground.common.util.FileUtil;
 import org.arrinna.bilibilimockbackground.dao.chat.*;
 import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
@@ -15,16 +17,22 @@ import org.arrinna.bilibilimockbackground.domain.entity.user.User;
 import org.arrinna.bilibilimockbackground.domain.enums.GroupRoleEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.RoomTypeEnum;
+import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
+import org.arrinna.bilibilimockbackground.domain.vo.response.GroupInfoVO;
 import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
 import org.arrinna.bilibilimockbackground.im.push.ImPushGateway;
+import org.arrinna.bilibilimockbackground.manager.CosManager;
 import org.arrinna.bilibilimockbackground.mapper.chat.RoomGroupMapper;
 import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -54,9 +62,14 @@ public class ChatServiceImpl implements IChatService {
     private ImPushGateway imPushGateway;
     @Resource
     private CosUtil cosUtil;
+    @Resource
+    private FileUtil fileUtil;
     @Autowired
     private RoomGroupMapper roomGroupMapper;
-
+    @Resource
+    private CosManager cosManager;
+    @Value("${cos.client.host}")
+    private String host;
     /**
      * 关注一个人就会收到他的自动回复，关注之后要先判断是否是互关，
      * 如果不是互关就要调用MessageDao,RoomFriendDao,
@@ -648,7 +661,7 @@ public class ChatServiceImpl implements IChatService {
 
 
         //3.接下来判断chat_group_member：在这张表中可以判断一个用户是否被踢出去，看role和status字段
-        ChatGroupMember chatGroupMember = groupMemberDao.getByRoomIdAndUid(fromUid,groupInfo.getId());
+        ChatGroupMember chatGroupMember = groupMemberDao.getByGroupIdAndUid(fromUid,groupInfo.getId());
         boolean groupMemberStatus=chatGroupMember==null;
         AssertUtil.isFalse(groupMemberStatus||chatGroupMember.getStatus()==3
                 ,ErrorCodeEnum.GROUP_NOT_MEMBER);
@@ -681,6 +694,9 @@ public class ChatServiceImpl implements IChatService {
                 .set("fromUid", fromUid)
                 .set("content", text)
                 .toString();
+
+        //todo考虑用ImMessage替代这里的payLoad
+
         imPushGateway.pushToUser(pushUids, payload);
         return msgId;
     }
@@ -774,5 +790,306 @@ public class ChatServiceImpl implements IChatService {
         }
         return roomId;
     }
+
+
+
+    /**
+     * 获取群信息
+     * 跟据uid和roomId获取群消息
+     * @param uid
+     * @param roomId
+     * @return
+     */
+    @Override
+    public GroupInfoVO groupInfo(Long uid, Long roomId){
+
+        ChatRoomGroup roomInfo= checkGroupInfo(uid,roomId);
+
+        Long groupId=roomInfo.getId();
+
+
+        List<Long> uidList=groupMemberDao.listActiveUids(groupId);
+        Long count=uidList.stream().count();
+
+        return GroupInfoVO
+                .builder()
+                .groupAvatar(cosUtil.toFullUrl(roomInfo.getAvatar()))
+                .groupName(roomInfo.getName())
+                .memberCount(count.intValue())
+                .roomId(roomId)
+                .userId(roomInfo.getOwnerUid())
+                .notice(roomInfo.getNotice())
+                .build()
+                ;
+    }
+
+    /**
+     * 修改群名
+     * @param uid
+     * @param roomId
+     * @param name
+     * @return
+     */
+    @Override
+    public boolean updateGroupName(Long uid, Long roomId, String name){
+        //1.先判断群的基本消息是否有问题
+        ChatRoomGroup groupInfo=checkGroupInfo(uid,roomId);
+
+        //2.然后修改群名，名称不能超过多长
+        if(!checkParam(name,1,20)){
+            return false;
+        }
+        //3.然后就看看自己是否有权限，这里封装一个方法
+        Boolean isOk=canManage(groupInfo.getId(),uid);
+        if(!isOk) return false;
+
+        groupInfo.setName(name.trim());
+
+        Boolean res=roomGroupDao.updateById(groupInfo);
+        AssertUtil.isFalse(!res,ErrorCodeEnum.GROUP_UPDATE_FAIL);
+        log.info("更新成功哈机密南北路都！{}",res);
+        return res;
+    }
+
+    /**
+     * 修改群公告
+     * @param uid
+     * @param roomId
+     * @param notice
+     * @return
+     */
+    @Override
+    public boolean updateGroupNotice(Long uid, Long roomId, String notice){
+        //1.先判断群的基本消息是否有问题
+        ChatRoomGroup groupInfo=checkGroupInfo(uid,roomId);
+
+        //2.然后修改群公告，公告不能超过多长
+        if(!checkParam(notice,1,200)){
+            return false;
+        }
+        groupInfo.setNotice(notice.trim());
+        return roomGroupDao.updateById(groupInfo);
+    }
+
+
+    public boolean dismissGroup(Long uid,Long roomId){
+
+        return true;
+    }
+
+    @Override
+    public String updateGroupAvatar(Long uid, Long roomId, MultipartFile avatar){
+        //1.先判断群的基本消息是否有问题
+        ChatRoomGroup groupInfo=checkGroupInfo(uid,roomId);
+
+        //2.然后就判断这个avatar群头像是否符合要求
+        fileUtil.checkImageFile(avatar,DefaultConstant.MAX_AVATAR_SIZE);
+
+        //3.接下来就通过图片拼接成URL，并且同步更新到腾讯云对象存储bucket中:such as: group/picture
+
+        String prefix= COSFilePrefix.GROUP_AVATAR_PREFIX;
+        String avatarName= avatar.getOriginalFilename();
+        String picturePath=fileUtil.buildFilePath(avatarName,prefix,roomId);
+
+        //4.还得判断uid是不是这个群的群主，如果不是就不能修改群图片！
+        AssertUtil.isFalse(!checkIsOwner(uid,groupInfo.getId()),ErrorCodeEnum.GROUP_NOT_OWNER);
+
+        try {
+            //转成文件类型
+            File temp_file=File.createTempFile("group_avatar_", "");
+            avatar.transferTo(temp_file);
+            String url=host+picturePath;
+            cosManager.putObject(picturePath,temp_file);
+
+            //传入roomId
+            boolean result=roomGroupDao.updateGroupAvatar(roomId,picturePath);
+
+            //如果更新失败就不要执行后面的语句
+            AssertUtil.isFalse(result==false,ErrorCodeEnum.UPLOAD_PIC_ERROR);
+
+            log.info("上传成功！"+picturePath);
+            return url;
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+//        return roomGroupDao.updateById(groupInfo);
+
+    }
+
+
+    private ChatRoomGroup checkGroupInfo(Long uid,Long roomId){
+        //1.获取群信息，这里要改改，因为有些群不是单聊群，所以要进行修改
+
+        ChatRoom existRoom = roomDao.getById(roomId);
+        ChatRoomGroup roomInfo = roomGroupDao.getByRoomId(roomId);
+//        if(existRoom!=null&&roomInfo==null){
+//            return null;
+//        }
+        AssertUtil.isFalse(roomInfo==null&&existRoom==null,ErrorCodeEnum.GROUP_ROOM_DISMISSED);
+
+        //2.然后判断uid是否是群成员，不是看不了！,关联chat_room_group表和chat_group_member这两张表
+        Long groupId=roomInfo.getId();
+        //3.ChatGroupMember member = groupMemberDao.getByRoomIdAndUid(uid,groupId);
+        List<Long> uidList=groupMemberDao.listActiveUids(groupId);
+
+
+        AssertUtil.isFalse(!uidList.contains(uid),ErrorCodeEnum.GROUP_NOT_MEMBER);
+        return roomInfo;
+    }
+
+
+
+    private Boolean canManage(Long groupId,Long uid){
+
+        ChatGroupMember member = groupMemberDao.getByGroupIdAndUid(uid,groupId);
+
+        return member!=null&&(member.getRole()==DefaultConstant.ROOM_ROLE_OWNER||
+                member.getRole()==DefaultConstant.ROOM_ROLE_MANAGER);
+    }
+
+    private Boolean checkParam(String content,int left,int right){
+        if(content==null||content.length()<left||content.length()>right){
+            return false;
+        }
+        return true;
+    }
+
+
+    /**
+     * todo 待做
+     * 邀请好友进群，这个功能待做
+     * @param uid 操作用户的ID
+     * @param roomId 房间/群组ID
+ * @param inviteUids 被邀请用户的ID列表
+     */
+    @Transactional(rollbackFor = Exception.class) // 声明式事务注解，指定Exception类异常时回滚
+    @Override // 标记该方法来自接口实现
+    public boolean inviteGroupMember(Long uid, Long roomId, List<Long> inviteUids){
+
+        //1.先判断操作人是谁
+        if(uid==null||inviteUids.isEmpty()){ // 参数校验：检查操作用户ID是否为空或被邀请列表是否为空
+            return false; // 这里应该返回一个明确的值，如false，而不是直接return
+        }
+
+        //2.接下来检查uid和roomId这两个参数是否合法
+        ChatRoomGroup chatRoomGroup=checkGroupInfo(uid,roomId);
+        if(chatRoomGroup==null){ // 用户是否在这间房间里面
+            return false;
+        }
+
+        //3.接下来就判断uid是否超过最多的人数了
+        Long groupId=chatRoomGroup.getId();
+        List<Long> activeUids = groupMemberDao.listActiveUids(groupId);
+
+        //4.这里直接抛出异常噢！
+        AssertUtil.isFalse(activeUids.size()+inviteUids.size()>DefaultConstant.GROUP_MAX_MEMBERS_FREE
+                ,ErrorCodeEnum.GROUP_SIZE_EXCEED);
+
+        AssertUtil.isFalse(inviteUids.size()>DefaultConstant.GROUP_MAX_INVITE_PER_USER
+                ,ErrorCodeEnum.GROUP_MEMBER_INVITE_EXCEED_SIZE);
+
+        //5.接下来就是for循环遍历邀请他们来了！
+        for (Long targetUid : inviteUids){
+            if(targetUid==null||targetUid==uid||activeUids.contains(targetUid)){
+                continue;
+            }
+
+            //3.2 接下来就要邀请
+            ChatGroupMember chatGroupMember=groupMemberDao.getByGroupIdAndUid(groupId,targetUid);
+            if(chatGroupMember!=null){
+                //也就是说明这是之前被移除出去的
+                chatGroupMember.setStatus(1);
+                chatGroupMember.setUpdateTime(LocalDateTime.now());
+                groupMemberDao.updateById(chatGroupMember);
+            }
+
+            //3.3 如果之前没有进群的就要邀请她等她通过就进群了 todo 待完成
+            else{
+
+
+
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * todo 解散群聊
+     */
+    public void quitGroup(){
+
+
+    }
+
+    /**
+     * todo 踢出群聊
+     */
+    public void tickGroupMember(){
+
+    }
+
+    /**
+     *列举群成员的信息
+     * @param uid
+     * @param roomId
+     * @return
+     */
+    @Override
+    public List<GroupMemberVO> listGroupMembers(Long uid, Long roomId){
+        //1.首先获取群聊信息
+        ChatRoomGroup group = roomGroupDao.getByRoomId(roomId);
+        if (group == null) {
+            return List.of();
+        }
+        Long groupId = group.getId();
+        //2.然后就是把每个人的信息遍历过来，在member这张表中获取groupId是多少的状态正常的包含角色的成员列表信息
+
+        List<ChatGroupMember> members= groupMemberDao.lambdaQuery()
+                .eq(ChatGroupMember::getGroupId,group.getId())
+                .eq(ChatGroupMember::getStatus,1)
+                .orderByAsc(ChatGroupMember::getRole)
+                .list();
+
+        //还有用户的uid信息
+        List<Long> getUidList = groupMemberDao.listActiveUids(roomId);
+        if (members.isEmpty()) {
+            return List.of();
+        }
+        // 3. 直接从成员表拿 uid，不要再调 listActiveUids（就是它传错参数才 500 的）
+        List<Long> uids = members.stream()
+                .map(ChatGroupMember::getUid)
+                .filter(Objects::nonNull)
+                .toList();
+
+        //然后用map组装起来
+        Map<Long, User> userMap = uids.isEmpty()
+                ? Map.of()
+                : userDao.listByIds(uids).stream()
+                .collect(Collectors.toMap(User::getUId, u -> u, (a, b) -> a));
+
+        // 4. 组装 VO，最终把用户的信息返回
+        List<GroupMemberVO> out = new ArrayList<>(members.size());
+        for (ChatGroupMember m : members) {
+            User u = userMap.get(m.getUid());
+            out.add(GroupMemberVO.builder()
+                    .uid(m.getUid())
+                    .name(u == null ? ("用户" + m.getUid()) : u.getNickname())
+                    .avatar(u == null || u.getAvatar() == null
+                            ? null : cosUtil.toFullUrl(u.getAvatar()))
+                    .role(m.getRole())
+                    .status(m.getStatus())
+                    .build());
+        }
+        return out;
+
+    }
+
+    private boolean checkIsOwner(Long uid,Long groupId){
+        return roomGroupDao.isGroupOwner(uid,groupId);
+    }
+
 
 }

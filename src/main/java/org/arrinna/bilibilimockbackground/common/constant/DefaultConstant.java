@@ -69,6 +69,16 @@ public interface DefaultConstant {
 
     int GROUP_MAX_MEMBERS_FREE = 100;
 
+    //一次最多邀请9个人进群
+
+    int GROUP_MAX_INVITE_PER_USER = 9;
+
+    int ROOM_ROLE_OWNER=1;
+
+    int ROOM_ROLE_MANAGER=2;
+
+    int ROOM_ROLE_MEMBER=3;
+
 //    int NICKNAME_MIN_LENGTH=3;
 //
 //    int NICKNAME_MAX_LENGTH=18;

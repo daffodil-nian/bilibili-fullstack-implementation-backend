@@ -51,4 +51,25 @@ public class RoomGroupDao extends ServiceImpl<RoomGroupMapper, ChatRoomGroup> {
                 ;
     }
 
+    /**
+     * 更新群头像
+     * @param roomId
+     * @param avatar
+     * @return
+     */
+    public boolean updateGroupAvatar(Long roomId, String avatar){
+        return lambdaUpdate()
+                .eq(ChatRoomGroup::getRoomId,roomId)
+                .eq(ChatRoomGroup::getDeleteStatus,0)
+                .set(ChatRoomGroup::getAvatar,avatar)
+                .update();
+    }
+
+    public boolean isGroupOwner(Long uid,Long groupId){
+        return lambdaQuery()
+                .eq(ChatRoomGroup::getOwnerUid,uid)
+                .eq(ChatRoomGroup::getId,groupId)
+                .one()!=null;
+    }
+
 }

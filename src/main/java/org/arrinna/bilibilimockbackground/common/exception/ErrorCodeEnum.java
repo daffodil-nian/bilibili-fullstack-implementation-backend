@@ -39,6 +39,11 @@ public enum ErrorCodeEnum {
     UPLOAD_AVATAR_ERROR(10021, "上传头像失败，请稍后再试哦~"),
     UPINFO_ERROR(10022,"啥都木有"),
 
+    PICTURE_SIZE_EXCEED(10023,"群图片大小超过限制啦！"),
+    PICTURE_TYPE_ERROR(10024,"群图片类型不支持哦！"),
+    PICTURE_EMPTY(10025,"群图片不能为空哦！"),
+    UPLOAD_PIC_ERROR(10026,"上传群图片失败，请稍后再试哦~"),
+
     // ========== 专栏模块 ==========
     ARTICLE_TITLE_EMPTY(11022, "专栏标题不能为空"),
     ARTICLE_CONTENT_EMPTY(11023, "专栏内容不能为空"),
@@ -72,6 +77,12 @@ public enum ErrorCodeEnum {
     GROUP_MEMBER_FEW(13107,"创建群聊至少需要3个人！"),
     GROUP_CREATED_MANY(13108,"您创建的群聊超过10个，太多了噢！"),
     GROUP_MEMBER_NOT_FAN(13109, "只能邀请自己的粉丝进群！"),
+    GROUP_MEMBER_INVITE_EXCEED_SIZE(13110,"一次最多邀请9个人进群噢！"),
+    GROUP_NOT_OWNER(13111,"只有群主才能这么操作哒！"),
+    GROUP_NOT_ADMIN(13112,"只有管理员才能这么操作哒！"),
+    GROUP_UPDATE_FAIL(13113,"群信息更新失败！请稍后再试噢！"),
+
+
 
     // ErrorCodeEnum
     EMOTICON_NOT_FOUND(14001, "表情不存在"),

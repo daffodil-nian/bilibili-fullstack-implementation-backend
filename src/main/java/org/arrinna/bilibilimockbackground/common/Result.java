@@ -2,11 +2,17 @@ package org.arrinna.bilibilimockbackground.common;
 
 import lombok.Data;
 
+
+/**
+ * 再加上一个时间戳
+ * @param <T>
+ */
 @Data
 public class Result <T>{
     private Integer code;
     private String msg;
     private T data;
+    private String timestamp;
 
     public static <T> Result<T> Success(T data){
         Result<T> result=new Result<>();

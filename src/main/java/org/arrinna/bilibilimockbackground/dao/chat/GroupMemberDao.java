@@ -16,7 +16,7 @@ public class GroupMemberDao extends ServiceImpl<GroupMemberMapper, ChatGroupMemb
      * @param groupId
      * @return
      */
-    public ChatGroupMember getByRoomIdAndUid(Long uid,Long groupId){
+    public ChatGroupMember getByGroupIdAndUid(Long uid,Long groupId){
         return lambdaQuery()
                 .eq(ChatGroupMember::getGroupId,groupId)
                 .eq(ChatGroupMember::getUid,uid)

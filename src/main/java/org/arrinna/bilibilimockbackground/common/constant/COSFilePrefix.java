@@ -14,4 +14,7 @@ public interface COSFilePrefix {
     // the prefix maybe like this "/emoticon/1/niulai"
     String EMOTICON_PREFIX = "/emoticon/%s/%s";
 
+
+    String GROUP_AVATAR_PREFIX="/group/%s/avatar/%s";
+
 }

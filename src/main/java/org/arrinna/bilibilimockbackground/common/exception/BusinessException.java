@@ -11,6 +11,8 @@ public class BusinessException extends RuntimeException {
 
     private String errMsg;
 
+    private String timestamp;
+
     public BusinessException(String message) {
         super(message);
         this.errMsg=message;
