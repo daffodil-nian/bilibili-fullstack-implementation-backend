@@ -1,6 +1,7 @@
 package org.arrinna.bilibilimockbackground.dao.chat;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatGroupMember;
 import org.arrinna.bilibilimockbackground.mapper.chat.GroupMemberMapper;
 import org.springframework.stereotype.Service;
@@ -23,13 +24,23 @@ public class GroupMemberDao extends ServiceImpl<GroupMemberMapper, ChatGroupMemb
                 .one();
     }
 
+
+    /**
+     * 列举在群里的成员的UID
+     * @param groupId
+     * @return
+     */
     public List<Long> listActiveUids(Long groupId) {
         return lambdaQuery()
                 .eq(ChatGroupMember::getGroupId, groupId)
-                .ne(ChatGroupMember::getStatus, 3)
+                .in(ChatGroupMember::getStatus,
+                        DefaultConstant.MEMBER_STATUS_IN, //1
+                        DefaultConstant.MEMBER_STATUS_MUTED) //2
                 .list()
                 .stream()
                 .map(ChatGroupMember::getUid)
                 .toList();
     }
+
+
 }

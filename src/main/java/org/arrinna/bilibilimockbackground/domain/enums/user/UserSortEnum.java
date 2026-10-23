@@ -1,6 +1,5 @@
-package org.arrinna.bilibilimockbackground.domain.enums;
+package org.arrinna.bilibilimockbackground.domain.enums.user;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;

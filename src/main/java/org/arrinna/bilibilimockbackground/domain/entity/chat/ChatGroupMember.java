@@ -13,22 +13,18 @@ public class ChatGroupMember {
 
     @TableId(type = IdType.AUTO)
     private Long id;
-
     /**
      * chat_room_group.id
      */
     private Long groupId;
-
     /**
      * 用户uid
      */
     private Long uid;
-
     /**
      * 1群主 2管理 3成员
      */
     private Integer role;
-
     /**
      * 1.在群里，2.被禁言，3被移出去
      */

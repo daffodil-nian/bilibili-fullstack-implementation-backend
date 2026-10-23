@@ -1,9 +1,7 @@
-package org.arrinna.bilibilimockbackground.domain.enums;
+package org.arrinna.bilibilimockbackground.domain.enums.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.util.Map;
 
 @Getter
 @AllArgsConstructor

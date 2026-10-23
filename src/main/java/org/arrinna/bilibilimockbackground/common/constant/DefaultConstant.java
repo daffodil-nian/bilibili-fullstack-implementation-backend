@@ -86,4 +86,19 @@ public interface DefaultConstant {
 //    int SIGNATURE_MAX_LENGTH=100;
 
 
+    /**
+     * 群成员的在群里的一个类型
+     */
+
+    int MEMBER_STATUS_IN = 1;//已经进群
+
+    int MEMBER_STATUS_MUTED = 2;//在群里but被禁言
+
+    int MEMBER_STATUS_OUT=3;//被移出群
+
+    int MEMBER_STATUS_PENDING=4;//等待对方进群通过
+
+    int MEMBER_STATUS_REFUSE=5;//用户收到群邀请卡片，主动点了拒绝
+
+
 }

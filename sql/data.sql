@@ -24,6 +24,9 @@ INSERT INTO `user` (`username`, `password`, `nickname`, `create_time`) VALUES
 
 
 
+INSERT INTO `user` (`username`, `password`, `nickname`, `create_time`) VALUES
+    ('testuser21', 'A@aliyunfuwuqi', 'Ting', NOW());
+
 # 给已经注册的用户插入数据111
 INSERT INTO `user_privacy` (
     `u_id`,

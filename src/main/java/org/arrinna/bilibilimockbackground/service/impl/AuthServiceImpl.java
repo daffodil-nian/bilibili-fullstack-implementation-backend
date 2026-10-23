@@ -18,11 +18,10 @@ import org.arrinna.bilibilimockbackground.domain.entity.user.UserWallet;
 import org.arrinna.bilibilimockbackground.domain.enums.ActiveStatusEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.SexEnum;
-import org.arrinna.bilibilimockbackground.domain.enums.UserAccountStatusEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.user.UserAccountStatusEnum;
 import org.arrinna.bilibilimockbackground.domain.vo.response.UserInfoResp;
 import org.arrinna.bilibilimockbackground.service.IAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -52,7 +51,7 @@ public class AuthServiceImpl implements IAuthService {
     private UserPrivacyDao userPrivacyDao;
 
     /**
-     * 用户登录
+     * 用户登录【修复BUG中】
      * @param username
      * @param password
      * @return
@@ -64,35 +63,45 @@ public class AuthServiceImpl implements IAuthService {
         AssertUtil.isFalse(password.isBlank(),ErrorCodeEnum.PASSWORD_EMPTY);    // 校验密码不能为空
 
         //2.查询数据库，检查用户是否存在，其中密码需要进行解密
-        AssertUtil.isTrue(userDao.isUserExist(username,PasswordUtil.encryptWithStaticSalt(password)),ErrorCodeEnum.PASSWORD_ERROR);
+        AssertUtil.isTrue(userDao.isUserExist(username,PasswordUtil.encryptWithStaticSalt(password)),
+                ErrorCodeEnum.PASSWORD_ERROR);
 
         System.out.println("用户名和密码校验成功,您即将登录成功~"); //验证成功，接下来继续往后面写吧~
         //3.找到该用户对应的UID,我们要调用userDao
 
         Long uid= userDao.findUserUIDByUsername(username);
+
+        String token ;
         String redisKey=RedisUtils.getKey(RedisKey.USER_TOKEN,uid);
         System.out.println("redisKey:love you partner"+redisKey);
 
+        String cached=RedisUtils.get(redisKey);
         //4.接下来就去redis中根据prefix在redis中找,找到就续期
-        String token = RedisUtils.get(redisKey);
-        if(token!=null){
-            log.info("用户已经登录，token续期7天");
+        // String token = RedisUtils.get(redisKey);
 
+        if(cached!=null){
+            log.info("用户已经登录，token续期7天");
             RedisUtils.expire(redisKey,7, TimeUnit.DAYS);
+            token=cached;
         }
         //5.否则就是重新生成jwt并且存在redis中
         else{
             log.info("生成token");
-            String temp_token= jwtUtils.createToken(uid);
-            RedisUtils.set(redisKey,temp_token,7,TimeUnit.DAYS);
+            token= jwtUtils.createToken(uid);
+            RedisUtils.set(redisKey,token,7,TimeUnit.DAYS);
 
         }
+
         //6.返回给前端，
         log.info("用户登录成功");
+
 
         //7.最后用一个变量存储这些值昂
 
         UserInfoResp.UserBaseInfo userBaseInfo= userDao.showUserInfo(uid);
+
+        //并且把token赋值到对象中去
+        userBaseInfo.setToken(token);
 
         String avatar=userBaseInfo.getAvatar();
         if(avatar==null||avatar.isBlank()){

@@ -39,4 +39,12 @@ public class RoomFriendDao extends ServiceImpl<RoomFriendMapper, ChatRoomFriend>
                 .in(ChatRoomFriend::getRoomId,roomId)
                 .list();
     }
+
+    public List<ChatRoomFriend> listByUid(Long uid) {
+        return lambdaQuery()
+                .and(w -> w.eq(ChatRoomFriend::getUid1, uid)
+                        .or()
+                        .eq(ChatRoomFriend::getUid2, uid))
+                .list();
+    }
 }

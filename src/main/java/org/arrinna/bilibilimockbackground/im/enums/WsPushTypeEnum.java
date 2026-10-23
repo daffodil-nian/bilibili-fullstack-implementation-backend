@@ -15,6 +15,7 @@ public enum WsPushTypeEnum {
     ERROR("ERROR"),
     CHAT_MSG("CHAT_MSG"),
     CHAT_RECALL("CHAT_RECALL"),
+    GROUP_INVITE("GROUP_INVITE"),
 
     ;
     private final String code;

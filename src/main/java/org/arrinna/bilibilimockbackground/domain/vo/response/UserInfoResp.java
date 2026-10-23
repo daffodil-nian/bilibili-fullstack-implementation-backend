@@ -61,6 +61,8 @@ public class UserInfoResp {
         private UserFollowResp userFollowInfo;
         private UserWalletResp userWalletResp;
         private LocalDateTime createTime;
+
+        private String token;//加上token，不然有风险
         // 显示来到B站平台距今约多少天
         //这些是前端要返回的数据信息
         // 至于IP地址的话也返回

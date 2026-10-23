@@ -6,7 +6,7 @@ import org.arrinna.bilibilimockbackground.domain.entity.user.UserLvInfo;
 import org.arrinna.bilibilimockbackground.domain.enums.ArticleSortEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.BiliLVEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.SearchTypeEnum;
-import org.arrinna.bilibilimockbackground.domain.enums.UserSortEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.user.UserSortEnum;
 import org.arrinna.bilibilimockbackground.domain.esdoc.ColumnEsDoc;
 import org.arrinna.bilibilimockbackground.domain.esdoc.UserEsDoc;
 import org.arrinna.bilibilimockbackground.domain.vo.article.ArticleSearchVO;

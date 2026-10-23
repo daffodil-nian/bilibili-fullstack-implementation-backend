@@ -30,7 +30,7 @@ public class ChatMessage {
     private String content;
 
     /**
-     * 消息类型：1文本 2表情 3图片
+     * 消息类型：1文本 2表情 3图片 4系统信息 5 弹窗
      */
     private Integer type;
 

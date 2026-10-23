@@ -1,7 +1,6 @@
-package org.arrinna.bilibilimockbackground.domain.enums;
+package org.arrinna.bilibilimockbackground.domain.enums.group;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

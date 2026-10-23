@@ -14,9 +14,11 @@ import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
 import org.arrinna.bilibilimockbackground.domain.entity.chat.*;
 import org.arrinna.bilibilimockbackground.domain.entity.user.User;
-import org.arrinna.bilibilimockbackground.domain.enums.GroupRoleEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.group.GroupInviteResultEnum;
+import org.arrinna.bilibilimockbackground.domain.enums.group.GroupRoleEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.MessageTypeEnum;
 import org.arrinna.bilibilimockbackground.domain.enums.RoomTypeEnum;
+import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupInviteCardVO;
 import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
@@ -294,9 +296,11 @@ public class ChatServiceImpl implements IChatService {
 
         return msgId;
     }
+    //TODO 待完善
     public Long sendImage(){
         return null;
     }
+    //TODO 待完善
     public Long sendVoice(){
         return null;
     }
@@ -981,14 +985,26 @@ public class ChatServiceImpl implements IChatService {
 
         //3.接下来就判断uid是否超过最多的人数了
         Long groupId=chatRoomGroup.getId();
+        //看的是群聊的用户uid
         List<Long> activeUids = groupMemberDao.listActiveUids(groupId);
 
+        List<Long> realInvited=new ArrayList<>();
         //4.这里直接抛出异常噢！
-        AssertUtil.isFalse(activeUids.size()+inviteUids.size()>DefaultConstant.GROUP_MAX_MEMBERS_FREE
-                ,ErrorCodeEnum.GROUP_SIZE_EXCEED);
+        AssertUtil.isFalse(activeUids.size()+inviteUids.size()
+                        > DefaultConstant.GROUP_MAX_MEMBERS_FREE,
+                ErrorCodeEnum.GROUP_SIZE_EXCEED);
 
-        AssertUtil.isFalse(inviteUids.size()>DefaultConstant.GROUP_MAX_INVITE_PER_USER
-                ,ErrorCodeEnum.GROUP_MEMBER_INVITE_EXCEED_SIZE);
+        AssertUtil.isFalse(inviteUids.size()
+                        >DefaultConstant.GROUP_MAX_INVITE_PER_USER,
+                ErrorCodeEnum.GROUP_MEMBER_INVITE_EXCEED_SIZE);
+
+        //一次性查出“我和哪些人有单聊，这样效率更高”
+
+        Map<Long, Long> peerRoomMap = roomFriendDao.listByUid(uid).stream()
+                .collect(Collectors.toMap(
+                        f -> Objects.equals(f.getUid1(), uid) ? f.getUid2() : f.getUid1(),
+                        ChatRoomFriend::getRoomId,
+                        (a, b) -> a));
 
         //5.接下来就是for循环遍历邀请他们来了！
         for (Long targetUid : inviteUids){
@@ -996,24 +1012,111 @@ public class ChatServiceImpl implements IChatService {
                 continue;
             }
 
-            //3.2 接下来就要邀请
+            //3.2 接下来就要邀请别人进群了
             ChatGroupMember chatGroupMember=groupMemberDao.getByGroupIdAndUid(groupId,targetUid);
             if(chatGroupMember!=null){
+                if(chatGroupMember.getStatus()==DefaultConstant.MEMBER_STATUS_PENDING){
+                    continue;
+                }
                 //也就是说明这是之前被移除出去的
-                chatGroupMember.setStatus(1);
+                chatGroupMember.setStatus(DefaultConstant.MEMBER_STATUS_PENDING);
+                chatGroupMember.setRole(DefaultConstant.ROOM_ROLE_MEMBER);
                 chatGroupMember.setUpdateTime(LocalDateTime.now());
                 groupMemberDao.updateById(chatGroupMember);
-            }
 
-            //3.3 如果之前没有进群的就要邀请她等她通过就进群了 todo 待完成
+                //然后把邀请的消息发送给对方，当作一条特殊消息，在我们这个系统中就是系统消息
+            }
+            //3.3 如果之前没有进群的就要邀请她等她通过就进群了
             else{
+                // 这一步是插入新数据插入到这张表中
+                 ChatGroupMember newMember = new ChatGroupMember();
+                 newMember.setGroupId(groupId);
+                 newMember.setUid(targetUid);
+                 newMember.setRole(DefaultConstant.ROOM_ROLE_MEMBER);
+                 newMember.setStatus(DefaultConstant.MEMBER_STATUS_PENDING);
+                 newMember.setCreateTime(LocalDateTime.now());
+                 newMember.setUpdateTime(LocalDateTime.now());
 
-
+                 groupMemberDao.save(newMember);
 
             }
+            realInvited.add(targetUid);
+//            ensureContact(uid,roomId);
+        }
+        if(realInvited.isEmpty()){
+            return true;//直接返回结果不要浪费时间了！
         }
 
+        for (Long targetUid: realInvited){
+            sendGroupInviteCard(uid,targetUid,roomId,chatRoomGroup);
+        }
+        //4.最后可以把消息推送到消息队列中去了！
+
         return true;
+    }
+
+
+    /**
+     * 邀请别人进群的方法，能够把邀请卡片同步到message这张表中去
+     * @param inviterUid
+     * @param targetUid
+     * @param roomId
+     * @param roomGroup
+     * @return
+     */
+    private Long sendGroupInviteCard(Long inviterUid,Long targetUid,Long roomId,ChatRoomGroup roomGroup){
+
+        //1.首先拿到两个人之间的单聊会话！
+        Long friendRoomId = ensureFriendRoom(inviterUid, targetUid); // 幂等，不解除拉黑、不发自动回复
+
+        if(friendRoomId==null){
+            log.warn("群邀请卡片发送失败！拿不到这条单聊对话{} -> {}",inviterUid,targetUid);
+            return null;
+        }
+
+        //2.然后就组装JSON,需要群头像和
+
+        User user = userDao.getUserByUID(inviterUid);
+        String inviterName = user == null ? ("用户" + inviterUid) : user.getNickname();
+        int memberCount = groupMemberDao.listActiveUids(roomGroup.getId()).size();
+
+        GroupInviteCardVO vo=GroupInviteCardVO
+                .builder()
+                .inviterUid(inviterUid)
+                .inviterName(inviterName)
+                .memberCount(memberCount)
+                .groupName(roomGroup.getName())
+                .targetUid(targetUid)
+                .roomId(roomId)
+                .groupAvatar(roomGroup.getAvatar() == null ? null : cosUtil.toFullUrl(roomGroup.getAvatar()))
+                .result(GroupInviteResultEnum.PENDING.getStatus())
+                .build();
+        //3.然后把消息输入到消息这个数据库中
+
+        ChatMessage msg = new ChatMessage();
+        msg.setRoomId(friendRoomId);
+        msg.setFromUid(inviterUid);
+        msg.setType(MessageTypeEnum.GROUP_INVITE.getCode());
+        msg.setStatus(0);
+        msg.setCreateTime(LocalDateTime.now());
+        //群通知的卡片
+        msg.setContent(JSONUtil.toJsonStr(vo));
+        //4.接着就刷新双方的会话列表预览
+        messageDao.save(msg);
+
+        //5.最后更新消息
+        updateRoomAndContactsLastMsg(inviterUid, targetUid, friendRoomId, msg.getId());
+
+        //6.推送到消息队列中
+        pushGroupInviteCard(targetUid,msg.getId(),friendRoomId,roomGroup.getRoomId(),roomGroup.getName(),inviterName);
+
+        return msg.getId();//返回消息ID
+    }
+
+    private Long sendGroupSystemMsg(){
+
+
+        return null;
     }
 
     /**
@@ -1091,5 +1194,63 @@ public class ChatServiceImpl implements IChatService {
         return roomGroupDao.isGroupOwner(uid,groupId);
     }
 
+
+    //TODO 还要写一个方法，确保两个人是否存在联系
+    private Long ensureFriendRoom(Long uid1,Long uid2){
+        if(uid1==null||uid2==null||uid1.equals(uid2)){
+            return null;//不能让两个用户是一个人
+        }
+        long uidA = Math.min(uid1,uid2);
+        long uidB = Math.max(uid1,uid2);
+
+        //判断这一组朋友是否存在，存在就不需要改
+        ChatRoomFriend exist = roomFriendDao.getFriendRecordByIds(uidA,uidB);
+
+        Long roomId;
+
+        if(exist!=null){
+            roomId = exist.getRoomId();
+        }
+        else{
+            ChatRoom room = roomDao.initRoom(RoomTypeEnum.FRIEND.getType());
+            roomDao.save(room);
+            roomId = room.getId();
+
+            ChatRoomFriend friend = new ChatRoomFriend();
+            friend.setRoomId(roomId);
+            friend.setUid1(uid1);
+            friend.setUid2(uid2);
+            friend.setStatus(DefaultConstant.ROOM_FRIEND_STATUS_NORMAL);
+            friend.setCreateTime(LocalDateTime.now());
+            friend.setUpdateTime(LocalDateTime.now());
+            roomFriendDao.save(friend);
+            // ★ 注意：这里不发 insertTextMessage 那条自动回复
+        }
+
+        ensureContact(uidA, roomId);
+        ensureContact(uidB, roomId);
+        return roomId;
+       }
+
+
+    private void pushGroupInviteCard(Long targetUid, Long cardMsgId, Long friendRoomId,
+                                     Long groupRoomId, String groupName, String inviterName) {
+        try {
+            String payload = JSONUtil.createObj()
+                    .set("type", WsPushTypeEnum.GROUP_INVITE.getCode())
+                    .set("msgId", cardMsgId)           // 卡片消息 id
+                    .set("roomId", friendRoomId)       // 卡片落在哪个会话
+                    .set("targetRoomId", groupRoomId)  // 要加入的群，前端调 accept 用
+                    .set("groupName", groupName)
+                    .set("inviterName", inviterName)
+                    .toString();
+
+            // ★ 推给这一个人 → 运输层的 for + isOnline 会处理在线判断
+            imPushGateway.pushToUser(List.of(targetUid), payload);
+
+        } catch (Exception e) {
+            log.warn("群邀请推送失败 targetUid={}", targetUid, e);
+        }
+    }
 
 }

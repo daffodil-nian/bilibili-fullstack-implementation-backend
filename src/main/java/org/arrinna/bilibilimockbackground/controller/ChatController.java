@@ -4,6 +4,7 @@ import jakarta.annotation.Resource;
 import org.arrinna.bilibilimockbackground.common.Result;
 import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
 import org.arrinna.bilibilimockbackground.domain.vo.request.CreateGroupReq;
+import org.arrinna.bilibilimockbackground.domain.vo.request.GroupInviteMemberReq;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UpdateGroupNameReq;
 import org.arrinna.bilibilimockbackground.domain.vo.request.UpdateGroupNoticeReq;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
@@ -185,6 +186,38 @@ public class ChatController {
         String notice = req.getNotice();
         Boolean res = chatService.updateGroupNotice(uid,roomId,notice);
         return Result.Success(res,"更新群公告成功！");
+    }
+
+
+    /**
+     * 这个是解散群聊的接口
+     * @return
+     */
+    public Result<Boolean> dissolveGroup(
+            @RequestAttribute("uid") Long uid
+    ){
+
+
+        return null;
+    }
+
+
+
+    @PostMapping("/group/{roomId}/members")
+    public Result<Boolean> inviteMembers(
+            @RequestAttribute("uid") Long uid,
+            @PathVariable Long roomId,
+            @RequestBody GroupInviteMemberReq req
+            ){
+
+        List<Long> uidList = req == null ? null : req.getUids();
+        if (uidList == null || uidList.isEmpty()) {
+            return Result.fail("请选择要邀请的人");
+        }
+        if (!chatService.inviteGroupMember(uid, roomId, uidList)) {
+            return Result.fail("邀请失败（人数已满或参数不合法）");
+        }
+        return Result.Success(true, "发送成功！请等待对方通过噢！");
     }
 
 

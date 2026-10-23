@@ -15,6 +15,11 @@ public enum MessageTypeEnum {
     TEXT(1, "文本"),
     EMOJI(2, "表情包"),
     IMAGE(3, "图片"),
+
+
+    SYSTEM(4, "系统消息"),
+
+    GROUP_INVITE(101,"群邀请卡片")
 //    todo 其他等待
     ;
     private Integer code;
@@ -32,5 +37,12 @@ public enum MessageTypeEnum {
     public static MessageTypeEnum of(Integer code){
         return cache.get(code);
     }
+
+
+    //还要专门写一个区分系统消息与普通消息的方法,普通气泡和系统气泡有区别的！
+    public static boolean isSystem(Integer code){
+        return code!=null&&code.equals(SYSTEM.getCode());
+    }
+
 
 }
