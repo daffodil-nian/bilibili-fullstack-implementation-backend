@@ -80,8 +80,9 @@ public enum ErrorCodeEnum {
     GROUP_MEMBER_INVITE_EXCEED_SIZE(13110,"一次最多邀请9个人进群噢！"),
     GROUP_NOT_OWNER(13111,"只有群主才能这么操作哒！"),
     GROUP_NOT_ADMIN(13112,"只有管理员才能这么操作哒！"),
-    GROUP_UPDATE_FAIL(13113,"群信息更新失败！请稍后再试噢！"),
 
+    GROUP_OPERATE_FAIL(13113,"群操作失败！请稍后再试噢！"),
+//    GROUP_DISMISS_FAIL(13114,"群解散失败！请稍后再试噢！"),
 
 
     // ErrorCodeEnum

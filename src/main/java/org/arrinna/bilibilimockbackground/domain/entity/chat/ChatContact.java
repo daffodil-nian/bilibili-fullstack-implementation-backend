@@ -42,4 +42,6 @@ public class ChatContact {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
+
+    private Integer status;
 }

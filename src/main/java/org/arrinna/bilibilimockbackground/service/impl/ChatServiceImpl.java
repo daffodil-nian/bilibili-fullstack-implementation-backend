@@ -850,7 +850,7 @@ public class ChatServiceImpl implements IChatService {
         groupInfo.setName(name.trim());
 
         Boolean res=roomGroupDao.updateById(groupInfo);
-        AssertUtil.isFalse(!res,ErrorCodeEnum.GROUP_UPDATE_FAIL);
+        AssertUtil.isFalse(!res,ErrorCodeEnum.GROUP_OPERATE_FAIL);
         log.info("更新成功哈机密南北路都！{}",res);
         return res;
     }
@@ -876,8 +876,35 @@ public class ChatServiceImpl implements IChatService {
     }
 
 
-    public boolean dismissGroup(Long uid,Long roomId){
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public boolean dismissGroup(Long uid, Long roomId) {
+        // 1. 首先判断群是否存在+ 我是成员
+        ChatRoomGroup group = checkGroupInfo(uid, roomId);
 
+        // 2. 只有群主能解散
+        AssertUtil.isFalse(!checkIsOwner(uid, group.getId()), ErrorCodeEnum.GROUP_NOT_OWNER);
+
+
+        // 3. 软删群，也就是批量操作数据库让其中的值发生，操作chat_room_group表让它的状态变化
+        group.setDeleteStatus(DefaultConstant.ROOM_GROUP_STATUS_DELETED);
+        group.setUpdateTime(LocalDateTime.now());
+
+        //然后更新，如果更新失败就抛出更新失败的异常
+        AssertUtil.isFalse(!roomGroupDao.updateById(group), ErrorCodeEnum.GROUP_OPERATE_FAIL);
+
+        // 4. 所有成员置为已移除（一条 SQL）
+//        groupMemberDao.lambdaUpdate()
+//                .eq(ChatGroupMember::getGroupId, group.getId())
+//                .set(ChatGroupMember::getStatus, DefaultConstant.MEMBER_STATUS_OUT)
+//                .set(ChatGroupMember::getUpdateTime, LocalDateTime.now())
+//                .update();
+
+        Boolean isOk = groupMemberDao.batchRemoveUserOutOfGroup(group.getId());
+
+        AssertUtil.isFalse(!isOk,ErrorCodeEnum.SYSTEM_ERROR);
+
+        log.info("群已解散 roomId={} groupId={} operator={}", roomId, group.getId(), uid);
         return true;
     }
 
@@ -1113,25 +1140,187 @@ public class ChatServiceImpl implements IChatService {
         return msg.getId();//返回消息ID
     }
 
-    private Long sendGroupSystemMsg(){
 
+    /**
+     * 发送系统消息方法，要同步通知到contact这张表 & room这张表
+     * @param roomId
+     * @param operatorUid
+     * @param content
+     */
+    private void sendGroupSystemMessage(Long roomId, Long operatorUid, String content) {
 
-        return null;
+        //new 一个ChatMessage这种对象
+        ChatMessage msg = new ChatMessage();
+
+        msg.setRoomId(roomId);
+        msg.setFromUid(operatorUid);
+        msg.setContent(content);
+        msg.setType(MessageTypeEnum.SYSTEM.getCode());
+        msg.setStatus(0);
+        msg.setCreateTime(LocalDateTime.now());
+        messageDao.save(msg);
+
+        //然后哦消息同步更新给room这张表，
+        roomDao.lambdaUpdate()
+                .eq(ChatRoom::getId, roomId)
+                .set(ChatRoom::getLastMsgId, msg.getId())
+                .set(ChatRoom::getActiveTime, LocalDateTime.now())
+                .update();
+
+        //最后更新contact这张表,然后更新
+        contactDao.lambdaUpdate()
+                .eq(ChatContact::getRoomId, roomId)
+                .set(ChatContact::getLastMsgId, msg.getId())
+                .set(ChatContact::getActiveTime, LocalDateTime.now())
+                .update();
     }
 
     /**
-     * todo 解散群聊
+     * 这个代码是自己退出群聊的部分
      */
-    public void quitGroup(){
+    @Override
+    public boolean quitGroup(Long uid, Long roomId) {
 
+        //1.首先还是检查群信息
+        ChatRoomGroup group = checkGroupInfo(uid, roomId);
+        AssertUtil.isFalse(checkIsOwner(uid, group.getId()), ErrorCodeEnum.GROUP_NOT_OWNER);
 
+        //2.然后从chat_group_member中检查是否有我这个人的信息，没有就说明我不是这个群里的人
+        ChatGroupMember me = groupMemberDao.getByGroupIdAndUid(uid, group.getId());
+        AssertUtil.isFalse(me == null, ErrorCodeEnum.GROUP_NOT_MEMBER);
+
+        //3.接下来还要判断是否是群主，是群主执行dismissGroup方法
+        if(checkIsOwner(uid,group.getId())){
+            dismissGroup(uid, roomId);
+            return true;
+        }
+
+        me.setStatus(DefaultConstant.MEMBER_STATUS_OUT);
+        me.setUpdateTime(LocalDateTime.now());
+        AssertUtil.isFalse(!groupMemberDao.updateById(me), ErrorCodeEnum.GROUP_OPERATE_FAIL);
+
+        User user = userDao.getUserByUID(uid);
+        sendGroupSystemMessage(roomId, uid,
+                (user == null ? ("用户" + uid) : user.getNickname()) + " 退出了群聊");
+        return true;
     }
 
     /**
-     * todo 踢出群聊
+     * 移出群成员（群主/管理员）
      */
-    public void tickGroupMember(){
+    public boolean tickGroupMember(Long uid, Long roomId, Long targetUid) {
+        ChatRoomGroup group = checkGroupInfo(uid, roomId);
 
+        AssertUtil.isTrue(Boolean.TRUE.equals(canManage(group.getId(), uid)),
+                ErrorCodeEnum.GROUP_NOT_ADMIN);
+        AssertUtil.isFalse(targetUid == null || targetUid.equals(group.getOwnerUid()),
+                ErrorCodeEnum.GROUP_NOT_OWNER);
+
+        ChatGroupMember target = groupMemberDao.getByGroupIdAndUid(targetUid, group.getId());
+        AssertUtil.isFalse(target == null, ErrorCodeEnum.PARAM_ERROR);
+
+        target.setStatus(DefaultConstant.MEMBER_STATUS_OUT);
+        target.setUpdateTime(LocalDateTime.now());
+        AssertUtil.isFalse(!groupMemberDao.updateById(target), ErrorCodeEnum.GROUP_OPERATE_FAIL);
+
+        User tu = userDao.getUserByUID(targetUid);
+        sendGroupSystemMessage(roomId, uid,
+                (tu == null ? ("用户" + targetUid) : tu.getNickname()) + " 被移出了群聊");
+        //
+        return true;
+    }
+
+    /**
+     * 被邀请人同意进群：status 4 → 1，此时才建群会话
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public boolean acceptGroupInvite(Long uid, Long roomId, Long msgId) {
+        ChatRoomGroup group = roomGroupDao.getByRoomId(roomId);
+        AssertUtil.isFalse(group == null, ErrorCodeEnum.GROUP_ROOM_NOT_FOUND);
+        Long groupId = group.getId();
+
+        ChatGroupMember me = groupMemberDao.getByGroupIdAndUid(uid, groupId);
+        AssertUtil.isFalse(me == null, ErrorCodeEnum.GROUP_NOT_MEMBER);
+        AssertUtil.isFalse(!Objects.equals(me.getStatus(), DefaultConstant.MEMBER_STATUS_PENDING),
+                ErrorCodeEnum.PRIVILEGE_ERROR);
+
+        AssertUtil.isFalse(groupMemberDao.listActiveUids(groupId).size()
+                >= DefaultConstant.GROUP_MAX_MEMBERS_FREE, ErrorCodeEnum.GROUP_SIZE_EXCEED);
+
+        me.setStatus(DefaultConstant.MEMBER_STATUS_IN);
+        me.setUpdateTime(LocalDateTime.now());
+        AssertUtil.isFalse(!groupMemberDao.updateById(me), ErrorCodeEnum.GROUP_OPERATE_FAIL);
+
+        ensureContact(uid, roomId);
+
+        User user = userDao.getUserByUID(uid);
+        sendGroupSystemMessage(roomId, uid,
+                (user == null ? ("用户" + uid) : user.getNickname()) + " 加入了群聊");
+
+        markInviteCard(msgId, GroupInviteResultEnum.ACCEPTED.getStatus());
+        return true;
+    }
+
+    /**
+     * 被邀请人拒绝：status 4 → 5
+ * 该方法用于处理用户拒绝加入群组的请求
+ * @param uid 用户的ID
+ * @param roomId 群组房间ID
+ * @param msgId 消息ID
+ * @return 处理结果，成功返回true
+     */
+    @Override
+    public boolean refuseGroupInvite(Long uid, Long roomId, Long msgId) {
+    // 根据房间ID获取群组信息
+        ChatRoomGroup group = roomGroupDao.getByRoomId(roomId);
+    // 断言群组存在，不存在则抛出异常
+        AssertUtil.isFalse(group == null, ErrorCodeEnum.GROUP_ROOM_NOT_FOUND);
+
+    // 获取用户在群组中的成员信息
+        ChatGroupMember me = groupMemberDao.getByGroupIdAndUid(uid, group.getId());
+    // 断言用户是群组成员，不是则抛出异常
+        AssertUtil.isFalse(me == null, ErrorCodeEnum.GROUP_NOT_MEMBER);
+    // 断言用户状态为待处理状态，不是则抛出异常
+        AssertUtil.isFalse(!Objects.equals(me.getStatus(), DefaultConstant.MEMBER_STATUS_PENDING),
+                ErrorCodeEnum.PRIVILEGE_ERROR);
+
+    // 更新用户状态为拒绝
+        me.setStatus(DefaultConstant.MEMBER_STATUS_REFUSE);
+    // 更新时间
+        me.setUpdateTime(LocalDateTime.now());
+    // 更新数据库中的成员信息，失败则抛出异常
+        AssertUtil.isFalse(!groupMemberDao.updateById(me), ErrorCodeEnum.GROUP_OPERATE_FAIL);
+
+    // 标记邀请消息为拒绝状态
+        markInviteCard(msgId, GroupInviteResultEnum.REJECTED.getStatus());
+    // 返回处理成功
+        return true;
+    }
+
+    /**
+     * 把邀请卡片 content 里的 result 改成 accepted / rejected
+     */
+    private void markInviteCard(Long msgId, String result) {
+        if (msgId == null) {
+            return;
+        }
+        try {
+            ChatMessage msg = messageDao.getById(msgId);
+            if (msg == null || !Objects.equals(msg.getType(),
+                    MessageTypeEnum.GROUP_INVITE.getCode())) {
+                return;
+            }
+            GroupInviteCardVO card = JSONUtil.toBean(msg.getContent(), GroupInviteCardVO.class);
+            if (card == null) {
+                return;
+            }
+            card.setResult(result);
+            msg.setContent(JSONUtil.toJsonStr(card));
+            messageDao.updateById(msg);
+        } catch (Exception e) {
+            log.warn("标记邀请卡片失败 msgId={}", msgId, e);
+        }
     }
 
     /**
@@ -1157,7 +1346,7 @@ public class ChatServiceImpl implements IChatService {
                 .list();
 
         //还有用户的uid信息
-        List<Long> getUidList = groupMemberDao.listActiveUids(roomId);
+        List<Long> getUidList = groupMemberDao.listActiveUids(groupId);
         if (members.isEmpty()) {
             return List.of();
         }
@@ -1190,6 +1379,12 @@ public class ChatServiceImpl implements IChatService {
 
     }
 
+    /**
+     * 判断指定的用户Uid是否是群主，只有群主才有资格解散
+     * @param uid
+     * @param groupId
+     * @return
+     */
     private boolean checkIsOwner(Long uid,Long groupId){
         return roomGroupDao.isGroupOwner(uid,groupId);
     }

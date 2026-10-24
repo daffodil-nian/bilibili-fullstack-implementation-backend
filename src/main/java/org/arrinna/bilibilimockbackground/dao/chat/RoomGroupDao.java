@@ -65,6 +65,12 @@ public class RoomGroupDao extends ServiceImpl<RoomGroupMapper, ChatRoomGroup> {
                 .update();
     }
 
+    /**
+     * 判断uid是否是群主
+     * @param uid
+     * @param groupId
+     * @return
+     */
     public boolean isGroupOwner(Long uid,Long groupId){
         return lambdaQuery()
                 .eq(ChatRoomGroup::getOwnerUid,uid)

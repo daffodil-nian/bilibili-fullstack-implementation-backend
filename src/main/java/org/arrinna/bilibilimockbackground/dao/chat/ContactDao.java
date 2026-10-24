@@ -26,7 +26,9 @@ public class ContactDao extends ServiceImpl<ContactMapper, ChatContact> {
     //这个dao层的写法是获取uid为uid的所有记录，记录用户的所有房间号的ID信息，方便和room表关联
     public List<ChatContact> listByUid(Long uid) {
         return lambdaQuery()
-                .eq(ChatContact::getUid, uid).list();
+                .eq(ChatContact::getUid, uid)
+                .eq(ChatContact::getStatus,0)
+                .list();
     }
 
     //再来一个方法listByUidOrderByActive
@@ -35,6 +37,7 @@ public class ContactDao extends ServiceImpl<ContactMapper, ChatContact> {
         return lambdaQuery()
                 .eq(ChatContact::getUid,uid)
                 .orderByDesc(ChatContact::getActiveTime)
+                .eq(ChatContact::getStatus,0)
                 .list();
     }
 

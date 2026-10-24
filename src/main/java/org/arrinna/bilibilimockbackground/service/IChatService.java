@@ -36,10 +36,20 @@ public interface IChatService {
     boolean updateGroupNotice(Long uid, Long roomId, String notice);
 
 
+    @Transactional(rollbackFor = Exception.class)
+    boolean dismissGroup(Long uid, Long roomId);
+
     String updateGroupAvatar(Long uid, Long roomId, MultipartFile avatar);
 
     @Transactional(rollbackFor = Exception.class)
     boolean inviteGroupMember(Long uid, Long roomId, List<Long> inviteUid);
+
+    boolean quitGroup(Long uid, Long roomId);
+
+    @Transactional(rollbackFor = Exception.class)
+    boolean acceptGroupInvite(Long uid, Long roomId, Long msgId);
+
+    boolean refuseGroupInvite(Long uid, Long roomId, Long msgId);
 
     List<GroupMemberVO> listGroupMembers(Long uid, Long roomId);
 }

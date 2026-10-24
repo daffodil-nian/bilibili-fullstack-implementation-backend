@@ -188,21 +188,6 @@ public class ChatController {
         return Result.Success(res,"更新群公告成功！");
     }
 
-
-    /**
-     * 这个是解散群聊的接口
-     * @return
-     */
-    public Result<Boolean> dissolveGroup(
-            @RequestAttribute("uid") Long uid
-    ){
-
-
-        return null;
-    }
-
-
-
     @PostMapping("/group/{roomId}/members")
     public Result<Boolean> inviteMembers(
             @RequestAttribute("uid") Long uid,
@@ -218,6 +203,26 @@ public class ChatController {
             return Result.fail("邀请失败（人数已满或参数不合法）");
         }
         return Result.Success(true, "发送成功！请等待对方通过噢！");
+    }
+
+    /** 退出群聊 */
+    @PostMapping("/group/{roomId}/quit")
+    public Result<Boolean> quitGroup(
+            @RequestAttribute("uid") Long uid,
+            @PathVariable Long roomId
+    ){
+        chatService.quitGroup(uid, roomId);
+        return Result.Success(true, "已退出群聊");
+    }
+
+    /** 解散群聊（仅群主） */
+    @PostMapping("/group/{roomId}/dissolve")
+    public Result<Boolean> dissolveGroup(
+            @RequestAttribute("uid") Long uid,
+            @PathVariable Long roomId
+    ){
+        chatService.dismissGroup(uid, roomId);
+        return Result.Success(true, "群已解散");
     }
 
 

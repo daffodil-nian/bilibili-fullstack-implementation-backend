@@ -6,6 +6,7 @@ import org.arrinna.bilibilimockbackground.domain.entity.chat.ChatGroupMember;
 import org.arrinna.bilibilimockbackground.mapper.chat.GroupMemberMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -40,6 +41,15 @@ public class GroupMemberDao extends ServiceImpl<GroupMemberMapper, ChatGroupMemb
                 .stream()
                 .map(ChatGroupMember::getUid)
                 .toList();
+    }
+
+
+    public Boolean batchRemoveUserOutOfGroup(Long groupId){
+        return lambdaUpdate()
+                .eq(ChatGroupMember::getGroupId,groupId)
+                .set(ChatGroupMember::getStatus,DefaultConstant.MEMBER_STATUS_OUT)
+                .set(ChatGroupMember::getUpdateTime, LocalDateTime.now())
+                .update();
     }
 
 

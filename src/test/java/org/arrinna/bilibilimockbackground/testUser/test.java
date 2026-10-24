@@ -89,4 +89,20 @@ public class test {
     }
 
 
+    /**
+     * 测试退群功能，测试结果没问题
+     */
+    @Test
+    public void test_user_quitGroup(){
+        boolean res=chatService.quitGroup(4L,23L);
+        log.info("退群成功！ res={}",res);
+    }
+
+    @Test
+    public void test_dismiss_group(){
+        boolean res=chatService.dismissGroup(6L,20L);
+        log.info("解散群聊成功！ res={}",res);
+    }
+
+
 }
