@@ -3,10 +3,7 @@ package org.arrinna.bilibilimockbackground.controller;
 import jakarta.annotation.Resource;
 import org.arrinna.bilibilimockbackground.common.Result;
 import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
-import org.arrinna.bilibilimockbackground.domain.vo.request.CreateGroupReq;
-import org.arrinna.bilibilimockbackground.domain.vo.request.GroupInviteMemberReq;
-import org.arrinna.bilibilimockbackground.domain.vo.request.UpdateGroupNameReq;
-import org.arrinna.bilibilimockbackground.domain.vo.request.UpdateGroupNoticeReq;
+import org.arrinna.bilibilimockbackground.domain.vo.request.*;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.GroupInfoVO;
@@ -223,6 +220,25 @@ public class ChatController {
     ){
         chatService.dismissGroup(uid, roomId);
         return Result.Success(true, "群已解散");
+    }
+
+//    @PostMapping("/group/{roomId}/members/{targetUid}/remove")
+//    public Result<Boolean> chatGroupKick(
+//            @RequestAttribute("uid") Long uid,
+//            @PathVariable Long roomId,
+//            @RequestBody GroupKickMemberReq req
+//    ){
+//        Long targetUid = req.getTargetUid();
+//        return Result.Success(chatService.tickGroupMember(uid,roomId,targetUid)
+//                ,"成功移除该成员！");
+//    }
+
+    @PostMapping("/group/{roomId}/members/{targetUid}/remove")
+    public Result<Boolean> chatGroupKick(@RequestAttribute("uid") Long uid,
+                                         @PathVariable Long roomId,
+                                         @PathVariable Long targetUid) {
+        return Result.Success(chatService.tickGroupMember(uid, roomId, targetUid),
+                "成功移除该成员！");
     }
 
 

@@ -46,6 +46,8 @@ public interface IChatService {
 
     boolean quitGroup(Long uid, Long roomId);
 
+    boolean tickGroupMember(Long uid, Long roomId, Long targetUid);
+
     @Transactional(rollbackFor = Exception.class)
     boolean acceptGroupInvite(Long uid, Long roomId, Long msgId);
 

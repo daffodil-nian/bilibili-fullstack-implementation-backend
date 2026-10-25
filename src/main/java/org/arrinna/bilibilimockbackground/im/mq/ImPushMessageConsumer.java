@@ -31,6 +31,8 @@ public class ImPushMessageConsumer {
                 continue;
             }
             if (OnlineWsMap.isOnline(uid)) {
+
+                //看到没，这里有一个onlineWsMap，这是自定义的
                 OnlineWsMap.push(uid, message.getPayload());
                 log.info("MQ 消费后已推 WS, uid={}", uid);
             } else {

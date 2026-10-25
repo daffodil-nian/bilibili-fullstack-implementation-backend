@@ -1144,7 +1144,7 @@ public class ChatServiceImpl implements IChatService {
     /**
      * 发送系统消息方法，要同步通知到contact这张表 & room这张表
      * @param roomId
-     * @param operatorUid
+     * @param operatorUid  操作者的UID，比如群主
      * @param content
      */
     private void sendGroupSystemMessage(Long roomId, Long operatorUid, String content) {
@@ -1160,7 +1160,7 @@ public class ChatServiceImpl implements IChatService {
         msg.setCreateTime(LocalDateTime.now());
         messageDao.save(msg);
 
-        //然后哦消息同步更新给room这张表，
+        //然后哦消息同步更新给room这张表
         roomDao.lambdaUpdate()
                 .eq(ChatRoom::getId, roomId)
                 .set(ChatRoom::getLastMsgId, msg.getId())
@@ -1206,22 +1206,35 @@ public class ChatServiceImpl implements IChatService {
     }
 
     /**
-     * 移出群成员（群主/管理员）
+     * todo  移出群成员（群主/管理员）
+     * 首先梳理逻辑：
+     * 1.检查群信息
+     * 2.检查自己的身份是否是管理员
+     * 3.移除群聊
+     * 4.同步更新推送消息服务
      */
+    @Override
     public boolean tickGroupMember(Long uid, Long roomId, Long targetUid) {
+        //1.首先调用checkGroupInfo方法检查群信息[在我们计算机领域这是防御性编程]
         ChatRoomGroup group = checkGroupInfo(uid, roomId);
 
+        //2.判断自己是否是管理员
         AssertUtil.isTrue(Boolean.TRUE.equals(canManage(group.getId(), uid)),
                 ErrorCodeEnum.GROUP_NOT_ADMIN);
+
+        //todo 3.接下来就是判断要移出去的用户是否存在，如果不存在或者是群主就抛出异常，这里有待修改
         AssertUtil.isFalse(targetUid == null || targetUid.equals(group.getOwnerUid()),
                 ErrorCodeEnum.GROUP_NOT_OWNER);
 
+        //接下来就是判断这个人是否在这个群中
         ChatGroupMember target = groupMemberDao.getByGroupIdAndUid(targetUid, group.getId());
         AssertUtil.isFalse(target == null, ErrorCodeEnum.PARAM_ERROR);
+
 
         target.setStatus(DefaultConstant.MEMBER_STATUS_OUT);
         target.setUpdateTime(LocalDateTime.now());
         AssertUtil.isFalse(!groupMemberDao.updateById(target), ErrorCodeEnum.GROUP_OPERATE_FAIL);
+
 
         User tu = userDao.getUserByUID(targetUid);
         sendGroupSystemMessage(roomId, uid,
