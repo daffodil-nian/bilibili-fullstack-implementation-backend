@@ -5,10 +5,12 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.arrinna.bilibilimockbackground.common.constant.COSFilePrefix;
 import org.arrinna.bilibilimockbackground.common.constant.DefaultConstant;
+import org.arrinna.bilibilimockbackground.common.constant.RedisKey;
 import org.arrinna.bilibilimockbackground.common.exception.ErrorCodeEnum;
 import org.arrinna.bilibilimockbackground.common.util.AssertUtil;
 import org.arrinna.bilibilimockbackground.common.util.CosUtil;
 import org.arrinna.bilibilimockbackground.common.util.FileUtil;
+import org.arrinna.bilibilimockbackground.common.util.RedisUtils;
 import org.arrinna.bilibilimockbackground.dao.chat.*;
 import org.arrinna.bilibilimockbackground.dao.user.UserDao;
 import org.arrinna.bilibilimockbackground.dao.user.UserFollowDao;
@@ -23,10 +25,13 @@ import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.GroupInfoVO;
+import org.arrinna.bilibilimockbackground.im.constant.GroupConstant;
 import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
 import org.arrinna.bilibilimockbackground.im.push.ImPushGateway;
 import org.arrinna.bilibilimockbackground.manager.CosManager;
+import org.arrinna.bilibilimockbackground.mapper.chat.MessageMapper;
 import org.arrinna.bilibilimockbackground.mapper.chat.RoomGroupMapper;
+import org.arrinna.bilibilimockbackground.mapper.chat.RoomMapper;
 import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -72,6 +78,11 @@ public class ChatServiceImpl implements IChatService {
     private CosManager cosManager;
     @Value("${cos.client.host}")
     private String host;
+    @Autowired
+    private MessageMapper messageMapper;
+    @Autowired
+    private RoomMapper roomMapper;
+
     /**
      * 关注一个人就会收到他的自动回复，关注之后要先判断是否是互关，
      * 如果不是互关就要调用MessageDao,RoomFriendDao,
@@ -293,6 +304,10 @@ public class ChatServiceImpl implements IChatService {
 //            OnlineWsMap.push(targetUid,payload);
             //开始push消息【在思考怎么写】
             imPushGateway.pushToUser(List.of(targetUid),payload);
+
+            String key = String.format(RedisKey.RECALL_KEY,msgId);
+
+            RedisUtils.expire(key, GroupConstant.RECALL_LIMIT_MINUTES, TimeUnit.MINUTES);
 
         return msgId;
     }
@@ -1460,5 +1475,77 @@ public class ChatServiceImpl implements IChatService {
             log.warn("群邀请推送失败 targetUid={}", targetUid, e);
         }
     }
+
+
+    //修改状态，看看要不要判断是否是群聊
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean withdrawMessage(Long uid,Long messageId,Long roomId){
+        //1.首先判断消息是否存在，这是硬性判断
+        ChatMessage chatMessage = messageMapper.selectById(messageId);
+        AssertUtil.isFalse(chatMessage==null,ErrorCodeEnum.MESSAGE_NOT_FOUND);
+
+        AssertUtil.isFalse(!Objects.equals(chatMessage.getRoomId(),roomId),ErrorCodeEnum.PARAM_ERROR);
+
+        //2.然后判断房间存在
+        ChatRoom chatRoom = roomMapper.selectById(roomId);
+        AssertUtil.isFalse(chatRoom==null,ErrorCodeEnum.ROOM_SESSION_NOT_FOUND);
+
+        boolean isGroup = Objects.equals(chatRoom.getType(),1);
+
+
+        //3.判断号类型之后按照房间类型分发
+        if(isGroup){
+            withdrawGroupMessage(uid,chatMessage,roomId);
+        }
+        else{
+            withdrawFriendMessage(uid,chatMessage,roomId);
+        }
+        //先充数
+        return true;
+
+    }
+
+    private void withdrawGroupMessage(Long uid,ChatMessage message,Long roomId){
+
+        //1.首先是得看看这个人是不是群主
+        boolean isSender = Objects.equals(uid,message.getFromUid());
+        if(!isSender){
+            //判断是否是管理员，这里要看chatGroupMember表
+            Long groupId = roomGroupDao.getByRoomId(roomId).getId();
+            AssertUtil.isFalse(!canManage(groupId,uid),ErrorCodeEnum.PRIVILEGE_ERROR);
+
+            //管理员可以随便撤回
+            return;
+        }
+        //2.然后撤回消息，调用这个方法
+        checkRecallable(message);
+    }
+
+    private void withdrawFriendMessage(Long uid,ChatMessage message,Long roomId){
+        //1.判断是否是本人，如果不是没权限撤回！
+        boolean isSender = Objects.equals(uid,message.getFromUid());
+        AssertUtil.isFalse(!isSender,ErrorCodeEnum.PRIVILEGE_ERROR);
+        checkRecallable(message);
+
+    }
+
+    //判断能否在规定时间内撤回某条消息
+    private void checkRecallable(ChatMessage msg){
+
+        Long msgId = msg.getId();
+        Long now = System.currentTimeMillis();
+        //接下来从redis中找值，看能不能找到对应的Key
+        String key = String.format(RedisKey.RECALL_KEY,msgId);
+
+        String msgInfo=RedisUtils.get(key);
+        AssertUtil.isFalse(msgInfo==null,ErrorCodeEnum.RECALL_TIMEOUT);
+
+        msg.setStatus(1);
+        messageDao.updateById(msg);
+        //最后修改消息的状态
+    }
+
+
+
 
 }

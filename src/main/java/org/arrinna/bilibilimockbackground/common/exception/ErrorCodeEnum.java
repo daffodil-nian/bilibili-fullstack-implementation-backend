@@ -57,6 +57,8 @@ public enum ErrorCodeEnum {
     FOLLOW_LIST_VISIBLE_ERROR(12002, "由于该用户隐私设置，关注列表不可见"),
 
 
+    // ========== 房间模块 ==========
+    ROOM_SESSION_NOT_FOUND(12501, "会话不存在"),
 
     // ========== 聊天模块 ==========
     MESSAGE_NOT_FOUND(13001, "消息不存在"),
