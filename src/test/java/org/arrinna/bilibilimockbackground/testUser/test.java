@@ -107,8 +107,8 @@ public class test {
 
     @Test
     public void testSendText(){
-
-        Long messageId=chatService.sendText(6L,3L,"你好啊！");
+//Long fromUid, Long roomId, String content
+        Long messageId=chatService.sendGroupText(6L,23L,"你们好啊！");
         log.info("消息发送成功！消息id为{}",messageId);
     }
 
@@ -116,7 +116,7 @@ public class test {
     public void testWithdrawText(){
 //        Long uid  6, Long messageId, Long roomId  3
 
-        boolean res = chatService.withdrawMessage(6L,106L,3L);
+        boolean res = chatService.withdrawMessage(6L,107L,23L);
 
         log.info("消息撤回成功！ res={}",res);
 

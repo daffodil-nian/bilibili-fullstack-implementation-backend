@@ -1,61 +1,61 @@
-package org.arrinna.bilibilimockbackground.service;
-
-import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
-import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
-import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
-import org.arrinna.bilibilimockbackground.domain.vo.response.GroupInfoVO;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
-
-public interface IChatService {
-
-    Long createFriendSession(Long viewerUid, Long targetUid, int type);
-
-    @Transactional(rollbackFor = Exception.class)
-    void disableFriendSession(Long viewerUid, Long targetUid, int type);
-
-    Long sendText(Long fromUid, Long targetUid, String text);
-
-    List<ContactItemVO> listContacts(Long uid);
-
-    List<ChatMessageVO> listMessages(Long uid, Long roomId, int limit);
-
-    void markRead(Long uid, Long roomId);
-
-    Long sendGroupText(Long fromUid, Long roomId, String content);
-
-    //    @Transactional(rollbackFor = Exception.class)
-    Long createGroupSession(Long ownerUid, String name, List<Long> uids);
-
-    GroupInfoVO groupInfo(Long uid, Long roomId);
-
-    boolean updateGroupName(Long uid, Long roomId, String name);
-
-    boolean updateGroupNotice(Long uid, Long roomId, String notice);
-
-
-    @Transactional(rollbackFor = Exception.class)
-    boolean dismissGroup(Long uid, Long roomId);
-
-    String updateGroupAvatar(Long uid, Long roomId, MultipartFile avatar);
-
-    @Transactional(rollbackFor = Exception.class)
-    boolean inviteGroupMember(Long uid, Long roomId, List<Long> inviteUid);
-
-    boolean quitGroup(Long uid, Long roomId);
-
-    boolean tickGroupMember(Long uid, Long roomId, Long targetUid);
-
-    @Transactional(rollbackFor = Exception.class)
-    boolean acceptGroupInvite(Long uid, Long roomId, Long msgId);
-
-    boolean refuseGroupInvite(Long uid, Long roomId, Long msgId);
-
-    List<GroupMemberVO> listGroupMembers(Long uid, Long roomId);
-
-    //修改状态，看看要不要判断是否是群聊
-    @Transactional(rollbackFor = Exception.class)
-    Boolean withdrawMessage(Long uid, Long messageId, Long roomId);
-}
+//package org.arrinna.bilibilimockbackground.service;
+//
+//import org.arrinna.bilibilimockbackground.domain.vo.chat.GroupMemberVO;
+//import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
+//import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
+//import org.arrinna.bilibilimockbackground.domain.vo.response.GroupInfoVO;
+//import org.springframework.transaction.annotation.Transactional;
+//import org.springframework.web.multipart.MultipartFile;
+//
+//import java.util.List;
+//
+//public interface IChatService {
+//
+//    Long createFriendSession(Long viewerUid, Long targetUid, int type);
+//
+//    @Transactional(rollbackFor = Exception.class)
+//    void disableFriendSession(Long viewerUid, Long targetUid, int type);
+//
+//    Long sendText(Long fromUid, Long targetUid, String text);
+//
+//    List<ContactItemVO> listContacts(Long uid);
+//
+//    List<ChatMessageVO> listMessages(Long uid, Long roomId, int limit);
+//
+//    void markRead(Long uid, Long roomId);
+//
+//    Long sendGroupText(Long fromUid, Long roomId, String content);
+//
+//    //    @Transactional(rollbackFor = Exception.class)
+//    Long createGroupSession(Long ownerUid, String name, List<Long> uids);
+//
+//    GroupInfoVO groupInfo(Long uid, Long roomId);
+//
+//    boolean updateGroupName(Long uid, Long roomId, String name);
+//
+//    boolean updateGroupNotice(Long uid, Long roomId, String notice);
+//
+//
+//    @Transactional(rollbackFor = Exception.class)
+//    boolean dismissGroup(Long uid, Long roomId);
+//
+//    String updateGroupAvatar(Long uid, Long roomId, MultipartFile avatar);
+//
+//    @Transactional(rollbackFor = Exception.class)
+//    boolean inviteGroupMember(Long uid, Long roomId, List<Long> inviteUid);
+//
+//    boolean quitGroup(Long uid, Long roomId);
+//
+//    boolean tickGroupMember(Long uid, Long roomId, Long targetUid);
+//
+//    @Transactional(rollbackFor = Exception.class)
+//    boolean acceptGroupInvite(Long uid, Long roomId, Long msgId);
+//
+//    boolean refuseGroupInvite(Long uid, Long roomId, Long msgId);
+//
+//    List<GroupMemberVO> listGroupMembers(Long uid, Long roomId);
+//
+//    //修改状态，看看要不要判断是否是群聊
+//    @Transactional(rollbackFor = Exception.class)
+//    Boolean withdrawMessage(Long uid, Long messageId, Long roomId);
+//}

@@ -16,7 +16,10 @@ import org.arrinna.bilibilimockbackground.domain.vo.request.UserPrivacyReq;
 import org.arrinna.bilibilimockbackground.domain.vo.user.UserSimpleVO;
 import org.arrinna.bilibilimockbackground.domain.vo.user.UserSpaceVO;
 import org.arrinna.bilibilimockbackground.manager.CosManager;
-import org.arrinna.bilibilimockbackground.service.IChatService;
+//import org.arrinna.bilibilimockbackground.service.IChatService;
+import org.arrinna.bilibilimockbackground.service.IChatContactService;
+import org.arrinna.bilibilimockbackground.service.IChatMessageService;
+import org.arrinna.bilibilimockbackground.service.IChatRoomService;
 import org.arrinna.bilibilimockbackground.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +42,11 @@ public class UserController {
     @Resource
     private EsUtil esUtil;
     @Resource
-    private IChatService chatService;
+    private IChatMessageService chatMessageService;
+    @Resource
+    private IChatContactService chatContactService;
+    @Resource
+    private IChatRoomService chatRoomService;
     @Autowired
     private UserFollowDao userFollowDao;
 
@@ -155,11 +162,11 @@ public class UserController {
 
         if(wasFollowing){
             //调用取消关注的方法
-            chatService.disableFriendSession(uid,targetUid, RoomTypeEnum.FRIEND.getType());
+            chatContactService.disableFriendSession(uid,targetUid, RoomTypeEnum.FRIEND.getType());
         }
         else{
             //调用关注的方法
-            chatService.createFriendSession(uid,targetUid, RoomTypeEnum.FRIEND.getType());
+            chatContactService.createFriendSession(uid,targetUid, RoomTypeEnum.FRIEND.getType());
         }
 
         return Result.Success(res);

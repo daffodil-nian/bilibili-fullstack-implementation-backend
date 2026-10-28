@@ -12,7 +12,8 @@ import org.arrinna.bilibilimockbackground.common.util.NettyUtil;
 import org.arrinna.bilibilimockbackground.im.OnlineWsMap;
 import org.arrinna.bilibilimockbackground.im.enums.WsCommandEnum;
 import org.arrinna.bilibilimockbackground.im.enums.WsPushTypeEnum;
-import org.arrinna.bilibilimockbackground.service.IChatService;
+import org.arrinna.bilibilimockbackground.service.IChatMessageService;
+//import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.arrinna.bilibilimockbackground.service.OfflineMsgPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,12 +24,12 @@ import org.springframework.stereotype.Component;
 public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
 
     /** 静态持有，靠下面 setter 注入；不要用 @Resource/@Autowired 标在 static 字段上 */
-    private static IChatService chatService;
+    private static IChatMessageService chatService;
 
     private static OfflineMsgPushService offlineMsgPushService;
 
     @Autowired
-    public void setChatService(IChatService chatService) {
+    public void setChatService(IChatMessageService chatService) {
         WebSocketHandler.chatService = chatService;
     }
 

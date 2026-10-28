@@ -21,4 +21,6 @@ public class ChatMessageVO {
     private String fromNickname;
     private String fromAvatar;
 
+    private Integer status;
+    private Boolean recalled;
 }

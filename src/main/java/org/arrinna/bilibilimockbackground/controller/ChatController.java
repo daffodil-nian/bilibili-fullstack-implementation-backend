@@ -7,7 +7,10 @@ import org.arrinna.bilibilimockbackground.domain.vo.request.*;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ChatMessageVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.ContactItemVO;
 import org.arrinna.bilibilimockbackground.domain.vo.response.GroupInfoVO;
-import org.arrinna.bilibilimockbackground.service.IChatService;
+import org.arrinna.bilibilimockbackground.service.IChatContactService;
+import org.arrinna.bilibilimockbackground.service.IChatMessageService;
+import org.arrinna.bilibilimockbackground.service.IChatRoomService;
+//import org.arrinna.bilibilimockbackground.service.IChatService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,15 +21,20 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {
+//    @Resource
+//    private IChatService chatService;
     @Resource
-    private IChatService chatService;
-
+    private IChatMessageService chatMessageService;
+    @Resource
+    private IChatContactService chatContactService;
+    @Resource
+    private IChatRoomService chatRoomService;
     //聊天联系人
     //todo 测试接口：已测
     @GetMapping("/contacts")
     public Result<List<ContactItemVO>> contacts(@RequestAttribute("uid") Long uid){
         //获取用户的列表
-        return Result.Success(chatService.listContacts(uid));
+        return Result.Success(chatContactService.listContacts(uid));
     }
     /**
      * 某房间历史消息
@@ -40,29 +48,33 @@ public class ChatController {
             @RequestParam(defaultValue = "50") int limit
     ){
 
-        return Result.Success(chatService.listMessages(uid, roomId, limit));
+        return Result.Success(chatMessageService.listMessages(uid, roomId, limit));
     }
 
     /**
      * todo 待完善ing
-     * 撤回消息，MVP版
-     * @param uid
-     * @param body
-     * @return
      */
     @PostMapping("/withdraw")
-    public Result<Void> withdraw(
+    public Result<Boolean> withdraw(
             @RequestAttribute("uid") Long uid,
-            @RequestBody Map<String,Object> body
+            @RequestBody WithdrawReq req
     ){
-        if(body.get("messageId")==null){
-            //todo 抛出异常，如果要撤回messageId为空就撤回不了
+        if (req == null || req.getMessageId() == null) {
+            return Result.fail("messageId 不能为空");
         }
-        //todo 然后判断这个房间状态，如果房间被关撤回不了
+        if (req.getRoomId() == null) {
+            return Result.fail("roomId 不能为空");
+        }
 
-        
-        //todo 接着就是判断撤回方是谁，是发消息的本人不，还是管理员
-        return Result.Success();
+        // 幂等包装：Service 内部失败会抛 BusinessException，
+        // 这里的 false 是"没撤回成功但没抛异常"的兜底
+        Boolean ok = chatMessageService.withdrawMessage(
+                uid, req.getMessageId(), req.getRoomId());
+
+        if (!Boolean.TRUE.equals(ok)) {
+            return Result.fail("撤回失败");
+        }
+        return Result.Success(true, "已撤回");
     }
 
     /**
@@ -74,7 +86,7 @@ public class ChatController {
     public Result<Void> read(
             @RequestAttribute("uid") Long uid,
             @RequestParam Long roomId) {
-        chatService.markRead(uid, roomId);
+        chatContactService.markRead(uid, roomId);
         return Result.Success(null, "ok");
     }
     /**
@@ -92,7 +104,7 @@ public class ChatController {
         }
         Long targetUid = Long.valueOf(body.get("targetUid").toString());
         String content = body.get("content") == null ? null : body.get("content").toString();
-        Long msgId = chatService.sendText(uid, targetUid, content);
+        Long msgId = chatMessageService.sendText(uid, targetUid, content);
         if (msgId == null) {
             return Result.fail("发送失败（无会话/内容为空/会话禁用等）");
         }
@@ -103,7 +115,7 @@ public class ChatController {
     public Result<Long> createGroup(
             @RequestAttribute("uid") Long uid,
             @RequestBody CreateGroupReq req) {
-        Long roomId = chatService.createGroupSession(uid, req.getName(), req.getMemberUids());
+        Long roomId = chatRoomService.createGroupSession(uid, req.getName(), req.getMemberUids());
         if (roomId == null) {
             return Result.fail("建群失败");
         }
@@ -118,7 +130,7 @@ public class ChatController {
         }
         Long roomId = Long.valueOf(body.get("roomId").toString());
         String content = body.get("content") == null ? null : body.get("content").toString();
-        Long msgId = chatService.sendGroupText(uid, roomId, content);
+        Long msgId = chatRoomService.sendGroupText(uid, roomId, content);
         if (msgId == null) {
             return Result.fail("发送失败");
         }
@@ -132,7 +144,7 @@ public class ChatController {
     @GetMapping("/group/{roomId}")
     public Result<GroupInfoVO> groupInfo(@RequestAttribute("uid") Long uid,
                                          @PathVariable Long roomId) {
-        GroupInfoVO vo = chatService.groupInfo(uid, roomId);
+        GroupInfoVO vo = chatRoomService.groupInfo(uid, roomId);
         if (vo == null) {
             return Result.fail("群不存在或你不是群成员");
         }
@@ -145,7 +157,7 @@ public class ChatController {
             @RequestAttribute("uid") Long uid,
             @PathVariable Long roomId
     ){
-        List<GroupMemberVO> list = chatService.listGroupMembers(uid,roomId);
+        List<GroupMemberVO> list = chatRoomService.listGroupMembers(uid,roomId);
         if(list==null){
             return Result.fail(404,"群不存在或你不是群成员");
         }
@@ -159,7 +171,7 @@ public class ChatController {
             @RequestParam("roomId") Long roomId,
             @RequestParam("file") MultipartFile file
     ){
-        String url = chatService.updateGroupAvatar(uid,roomId,file);
+        String url = chatRoomService.updateGroupAvatar(uid,roomId,file);
         return Result.Success(url,"更新群头像成功！");
     }
 
@@ -170,7 +182,7 @@ public class ChatController {
             @RequestBody UpdateGroupNameReq req
     ){
         String name = req.getName();
-        Boolean res = chatService.updateGroupName(uid,roomId,name);
+        Boolean res = chatRoomService.updateGroupName(uid,roomId,name);
         return Result.Success(res,"更新群名成功！");
     }
 
@@ -181,7 +193,7 @@ public class ChatController {
             @RequestBody UpdateGroupNoticeReq req
     ){
         String notice = req.getNotice();
-        Boolean res = chatService.updateGroupNotice(uid,roomId,notice);
+        Boolean res = chatRoomService.updateGroupNotice(uid,roomId,notice);
         return Result.Success(res,"更新群公告成功！");
     }
 
@@ -196,7 +208,7 @@ public class ChatController {
         if (uidList == null || uidList.isEmpty()) {
             return Result.fail("请选择要邀请的人");
         }
-        if (!chatService.inviteGroupMember(uid, roomId, uidList)) {
+        if (!chatRoomService.inviteGroupMember(uid, roomId, uidList)) {
             return Result.fail("邀请失败（人数已满或参数不合法）");
         }
         return Result.Success(true, "发送成功！请等待对方通过噢！");
@@ -208,7 +220,7 @@ public class ChatController {
             @RequestAttribute("uid") Long uid,
             @PathVariable Long roomId
     ){
-        chatService.quitGroup(uid, roomId);
+        chatRoomService.quitGroup(uid, roomId);
         return Result.Success(true, "已退出群聊");
     }
 
@@ -218,7 +230,7 @@ public class ChatController {
             @RequestAttribute("uid") Long uid,
             @PathVariable Long roomId
     ){
-        chatService.dismissGroup(uid, roomId);
+        chatRoomService.dismissGroup(uid, roomId);
         return Result.Success(true, "群已解散");
     }
 
@@ -237,7 +249,7 @@ public class ChatController {
     public Result<Boolean> chatGroupKick(@RequestAttribute("uid") Long uid,
                                          @PathVariable Long roomId,
                                          @PathVariable Long targetUid) {
-        return Result.Success(chatService.tickGroupMember(uid, roomId, targetUid),
+        return Result.Success(chatRoomService.tickGroupMember(uid, roomId, targetUid),
                 "成功移除该成员！");
     }
 
