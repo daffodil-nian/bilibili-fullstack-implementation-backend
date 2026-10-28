@@ -117,6 +117,15 @@ public class RedisUtils {
 //
 //    }
 
+    public static boolean del(String key){
+        try {
+            return stringRedisTemplate.delete(key);
+        }
+        catch (Exception e) {
+            log.error("redis del error, key={}", key, e);
+            return false;
+        }
+    }
 
 
 }

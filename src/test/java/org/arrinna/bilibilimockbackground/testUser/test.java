@@ -105,4 +105,22 @@ public class test {
     }
 
 
+    @Test
+    public void testSendText(){
+
+        Long messageId=chatService.sendText(6L,3L,"你好啊！");
+        log.info("消息发送成功！消息id为{}",messageId);
+    }
+
+    @Test
+    public void testWithdrawText(){
+//        Long uid  6, Long messageId, Long roomId  3
+
+        boolean res = chatService.withdrawMessage(6L,106L,3L);
+
+        log.info("消息撤回成功！ res={}",res);
+
+    }
+
+
 }

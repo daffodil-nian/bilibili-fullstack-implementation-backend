@@ -287,6 +287,10 @@ public class ChatServiceImpl implements IChatService {
         //5.接下来写消息ing
         String content = text.trim();
         Long msgId = insertTextMessage(fromUid,roomId,content);
+//        String key = String.format(RedisKey.RECALL_KEY,msgId);
+
+        RedisUtils.set(RedisUtils.getKey(RedisKey.RECALL_KEY,msgId),String.valueOf(fromUid)
+                ,GroupConstant.RECALL_LIMIT_MINUTES,TimeUnit.MINUTES);
 
 
         //6.然后要更新room和contact的lastMsg！
@@ -305,9 +309,7 @@ public class ChatServiceImpl implements IChatService {
             //开始push消息【在思考怎么写】
             imPushGateway.pushToUser(List.of(targetUid),payload);
 
-            String key = String.format(RedisKey.RECALL_KEY,msgId);
 
-            RedisUtils.expire(key, GroupConstant.RECALL_LIMIT_MINUTES, TimeUnit.MINUTES);
 
         return msgId;
     }
@@ -1479,7 +1481,8 @@ public class ChatServiceImpl implements IChatService {
 
     //修改状态，看看要不要判断是否是群聊
     @Transactional(rollbackFor = Exception.class)
-    public Boolean withdrawMessage(Long uid,Long messageId,Long roomId){
+    @Override
+    public Boolean withdrawMessage(Long uid, Long messageId, Long roomId){
         //1.首先判断消息是否存在，这是硬性判断
         ChatMessage chatMessage = messageMapper.selectById(messageId);
         AssertUtil.isFalse(chatMessage==null,ErrorCodeEnum.MESSAGE_NOT_FOUND);
@@ -1535,14 +1538,16 @@ public class ChatServiceImpl implements IChatService {
         Long msgId = msg.getId();
         Long now = System.currentTimeMillis();
         //接下来从redis中找值，看能不能找到对应的Key
-        String key = String.format(RedisKey.RECALL_KEY,msgId);
 
+        String key = RedisUtils.getKey(RedisKey.RECALL_KEY,msgId);
         String msgInfo=RedisUtils.get(key);
         AssertUtil.isFalse(msgInfo==null,ErrorCodeEnum.RECALL_TIMEOUT);
 
         msg.setStatus(1);
         messageDao.updateById(msg);
         //最后修改消息的状态
+        RedisUtils.del(key);
+
     }
 
 

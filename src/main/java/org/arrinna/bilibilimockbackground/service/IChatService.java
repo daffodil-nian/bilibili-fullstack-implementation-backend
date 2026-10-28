@@ -54,4 +54,8 @@ public interface IChatService {
     boolean refuseGroupInvite(Long uid, Long roomId, Long msgId);
 
     List<GroupMemberVO> listGroupMembers(Long uid, Long roomId);
+
+    //修改状态，看看要不要判断是否是群聊
+    @Transactional(rollbackFor = Exception.class)
+    Boolean withdrawMessage(Long uid, Long messageId, Long roomId);
 }
